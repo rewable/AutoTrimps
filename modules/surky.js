@@ -540,7 +540,7 @@ function initPerks() {
 			level: 0,
 			priceBase: 4,
 			priceFact: 1.3,
-			max: 20,
+			max: 40,
 		},
 		Artisanistry: {
 			optimize: true,
@@ -622,7 +622,7 @@ function initPerks() {
 			priceFact: 1.3,
 			effect: 0,
 			// based on tributes
-			max: 40,
+			max: 80,
 			efficiency: 0,
 		},
 		Hunger: {
@@ -632,7 +632,7 @@ function initPerks() {
 			level: 0,
 			priceBase: 1000000,
 			priceFact: 1.3,
-			max: 30,
+			max: 60,
 		},
 		Looting: {
 			optimize: true,
@@ -662,7 +662,7 @@ function initPerks() {
 			level: 0,
 			priceBase: 5000000000000000000,
 			priceFact: 2,
-			max: 50,
+			max: 100,
 			efficiency: 0,
 			efficiency2: 0,
 			// we check for buying 2 obs levels as this may be super-extra-efficient for the extra guaranteed Rt drops
@@ -705,7 +705,7 @@ function initPerks() {
 			priceBase: 1,
 			priceFact: 1.3,
 			effect: 0.01,
-			max: 100,
+			max: 200,
 			efficiency: 0,
 		},
 		Range: {
@@ -715,7 +715,7 @@ function initPerks() {
 			level: 0,
 			priceBase: 1,
 			priceFact: 1.3,
-			max: 10,
+			max: 20,
 		},
 		Resilience: {
 			optimize: true,
@@ -734,7 +734,7 @@ function initPerks() {
 			level: 0,
 			priceBase: 100e21,
 			priceFact: 50,
-			max: 10,
+			max: 20,
 			effect: 1,
 			efficiency: 0,
 		},
@@ -747,7 +747,7 @@ function initPerks() {
 			priceFact: 1.3,
 			effect: 0,
 			// based on tenacityTime
-			max: 40,
+			max: 80,
 			efficiency: 0,
 		},
 		Toughness: {
