@@ -33,9 +33,9 @@ class HDStats {
 		this.hdRatioVoid = calcHDRatio(z, 'void');
 
 		//Calculating void HD values so that we don't need to generate them everytime when looking at VoidMaps function.
-		this.vhdRatio = getPageSetting('voidMapDefaultSettings').maxTenacity ? calcHDRatio(z, 'world', getPageSetting('voidMapDefaultSettings').maxTenacity) : this.hdRatio;
-		this.vhdRatioVoid = getPageSetting('voidMapDefaultSettings').maxTenacity ? calcHDRatio(z, 'void', getPageSetting('voidMapDefaultSettings').maxTenacity) : this.hdRatioVoid;
-		this.vhdRatioVoidPlus = calcHDRatio(z + 1, 'void', getPageSetting('voidMapDefaultSettings').maxTenacity);
+		this.vhdRatio = getPageSetting('voidMapSettings')[0].maxTenacity ? calcHDRatio(z, 'world', getPageSetting('voidMapSettings')[0].maxTenacity) : this.hdRatio;
+		this.vhdRatioVoid = getPageSetting('voidMapSettings')[0].maxTenacity ? calcHDRatio(z, 'void', getPageSetting('voidMapSettings')[0].maxTenacity) : this.hdRatioVoid;
+		this.vhdRatioVoidPlus = calcHDRatio(z + 1, 'void', getPageSetting('voidMapSettings')[0].maxTenacity);
 
 		this.hitsSurvived = calcHitsSurvived(z, 'world');
 		this.hitsSurvivedVoid = calcHitsSurvived(z, 'void');
@@ -282,12 +282,12 @@ function calcHitsSurvived(targetZone, type, checkResults) {
 	if (!targetZone) targetZone = game.global.world;
 	if (!type) type = 'world';
 	var damageMult = 1;
-	var voidDamage = 0;
 	const formationMod = (game.upgrades.Dominance.done) ? 2 : 1;
 
 	//Our Health and Block
 	var customAttack = type === 'world' && targetZone > 200 && game.global.universe === 2 ? calcMutationAttack(targetZone) : undefined;
 	var hitsToSurvive = targetHitsSurvived();
+	if (hitsToSurvive === 0) hitsToSurvive = 1;
 	var health = calcOurHealth(false, type, false, true) / formationMod;
 	var block = calcOurBlock(false) / formationMod;
 	var equality = equalityQuery('Snimp', targetZone, null, type, null, 'gamma', null, hitsToSurvive);
@@ -297,13 +297,13 @@ function calcHitsSurvived(targetZone, type, checkResults) {
 		targetZone++;
 	}
 
-	//Explosive Daily and Crushed
-	if (health > block && getPageSetting('IgnoreCrits') !== 2) {
-		const dailyExplosive = challengeActive('Daily') && typeof game.global.dailyChallenge.explosive !== "undefined";
+	//Crit Daily and Crushed
+	if ((getPageSetting('IgnoreCrits') === 1 && type !== 'void') || getPageSetting('IgnoreCrits') === 0) {
+		const dailyCrit = challengeActive('Daily') && typeof game.global.dailyChallenge.crits !== "undefined";
 		const crushed = challengeActive('Crushed');
-		if (dailyExplosive) {
-			damageMult = dailyModifiers.explosive.getMult(game.global.dailyChallenge.explosive.strength);
-		} else if (crushed) {
+		if (dailyCrit) {
+			damageMult = dailyModifiers.crits.getMult(game.global.dailyChallenge.crits.strength);
+		} else if (crushed && health > block) {
 			damageMult = 3;
 		}
 	}

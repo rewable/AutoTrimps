@@ -113,7 +113,7 @@ function delayStart() {
 		return;
 	}
 
-	/* //Loading jQuery select2 to style dropdown boxes more than basic html/css can.
+	//Loading jQuery select2 to style dropdown boxes more than basic html/css can.
 	var script = document.createElement("link");
 	script.rel = 'stylesheet';
 	script.href = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css';
@@ -125,7 +125,7 @@ function delayStart() {
 	script.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
 	script.type = 'text/javascript';
 	// Append the script to the document
-	document.head.appendChild(script); */
+	document.head.appendChild(script);
 
 	//Loads the settings from the save file, settingsGUI & the various modules installed.
 	initializeAutoTrimps();
@@ -172,7 +172,7 @@ function delayStartAgain() {
 	//Reload script every 10 milliseconds until these scripts have been loaded
 	//Added incrementing variable at the end of every script so that we can be sure that the script has fully loaded before we start the main loop.
 	if (atSettings.modules.installedModules.length > atSettings.modules.loadedModules.length || typeof updateATVersion !== 'function') {
-		console.log("Delaying start by 10ms")
+		console.log(timeStamp() + " Delaying start by 10ms")
 		setTimeout(delayStartAgain, 10);
 		return;
 	}
@@ -190,30 +190,13 @@ function delayStartAgain() {
 	//Starts the loop in either normal or TimeLapse mode.
 	toggleCatchUpMode();
 
-	//Need to updateCustomButtons after we've loaded the script so that the settings have the correct values.
-	updateCustomButtons(true);
 	localStorage.setItem('mutatorPresets', autoTrimpSettings.mutatorPresets.valueU2);
 	//Setup Perky/Surky UI
 	universeSwapped();
 	//Loads my game settings
 	loadAugustSettings();
-	/* $(document).ready(function () {
-		$('.select2').select2({
-			templateSelection: format,
-		});
-	}); */
 }
 
-function format(item) {
-	element = $(item.element);
-	text = item.text;
-	prefix = element.attr["data-prefix"];
-	if (prefix !== undefined)
-		prefix = prefix + ' ';
-	else
-		prefix = '';
-	return prefix + text;
-}
 //Displays Perky UI when changing universes.
 function universeSwapped() {
 	//Hard to do an alternative to this. Would have linked it to the swapPortalUniverse() function but the force going back to U1 button in U2 causes issues with that.
@@ -321,7 +304,7 @@ function mainLoop() {
 	//Adjust tooltip when mazWindow is open OR clear our adjustments if it's not.
 	//Need to identify a better solution to this. Not really sure what I can do though.
 	if (MODULES.popups.mazWindowOpen) {
-		var mazSettings = ["Map Farm", "Map Bonus", "Void Map", "HD Farm", "Raiding", "Bionic Raiding", "Balance Destack", "Toxicity Farm", "Quagmire Farm", "Insanity Farm", "Alchemy Farm", "Hypothermia Farm", "Bone Shrine", "Auto Golden", "Tribute Farm", "Smithy Farm", "Worshipper Farm", "Desolation Gear Scumming"];
+		var mazSettings = ["Map Farm", "Map Bonus", "Void Map", "HD Farm", "Raiding", "Bionic Raiding", "Balance Destack", "Toxicity Farm", "Quagmire Farm", "Insanity Farm", "Alchemy Farm", "Hypothermia Farm", "Bone Shrine", "Auto Golden", "Daily Auto Golden", "C3 Auto Golden", "Tribute Farm", "Smithy Farm", "Worshipper Farm", "Desolation Gear Scumming"];
 		var mazCheck = mazSettings.indexOf(document.getElementById('tooltipDiv').children.tipTitle.innerText);
 
 		if (mazCheck === -1) {
@@ -513,7 +496,7 @@ function mainCleanup() {
 	//Update settings displayed as well so that any requirements that have now been reached are displayed.
 	if (atSettings.portal.aWholeNewHZE) {
 		challengeUnlockCheck();
-		updateCustomButtons(true);
+		if (atSettings.portal.lastHZE !== 0) updateCustomButtons(true);
 	}
 	//If in a new zone then run this code
 	if (atSettings.portal.aWholeNewWorld) {

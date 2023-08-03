@@ -27,10 +27,10 @@ ul.tab li a {
 	display: inline-block;
 	color: black;
 	text-align: center;
-	padding: 0.5vh 1vw;
+	padding: 0.5vh 0.9vw;
 	text-decoration: none;
 	transition: 0.3s;
-	font-size: 2vh;
+	font-size: 0.9vw;
 }
 
 ul.tab li .active {
@@ -188,6 +188,7 @@ ul.tab li a:hover {
 .windowRow.titles {
 	border: 1px solid black;
 	margin: 0 1%;
+	margin-top: 0.2vw;
 	padding: 0.2% 2%;
 }
 
@@ -1092,7 +1093,8 @@ ul.tab li a:hover {
 .windowAutoBoneShrine,
 .windowBoneBelow,
 .windowBoneAmount,
-.windowBoneGather {
+.windowBoneGather,
+.windowBoneDefault {
 	display: inline-block;
 	padding-left: 1%;
 }
@@ -1133,6 +1135,10 @@ ul.tab li a:hover {
 .windowBoneBelow,
 .windowBoneAmount {
 	width: 9%;
+}
+
+.windowBoneDefault {
+	width: 15%;
 }
 
 .windowBoneGather {
@@ -1535,13 +1541,15 @@ ul.tab li a:hover {
 .windowDeleteAutoGolden,
 .windowActiveAutoGolden,
 .windowAmtAutoGolden,
-.windowTypeAutoGolden {
+.windowTypeAutoGolden,
+.windowRunTypeAutoGolden,
+.windowPriorityAutoGolden {
 	padding-left: 1%;
 	display: inline-block;
 }
 
 .windowActiveAutoGolden {
-	width: 19%;
+	width: 11%;
 }
 
 .windowDeleteAutoGolden {
@@ -1549,12 +1557,37 @@ ul.tab li a:hover {
 	cursor: pointer;
 }
 
+.windowPriorityAutoGolden {
+	width: 10%;
+}
+
 .windowAmtAutoGolden {
-	width: 40%;
+	width: 15%;
 }
 
 .windowTypeAutoGolden {
-	width: 40%;
+	width: 15%;
+}
+
+.windowRunTypeAutoGolden {
+	width: 48%;
+}
+
+.windowChallengeOnAutoGolden .windowChallengeAutoGolden,
+.windowChallenge3OnAutoGolden .windowChallenge3AutoGolden {
+	display: inline-block;
+	width: 24%;
+}
+
+.windowChallenge3OnAutoGolden .windowRunTypeAutoGolden,
+.windowChallengeOnAutoGolden .windowRunTypeAutoGolden {
+	display: inline-block;
+	width: 24%;
+}
+
+.windowChallengeOffAutoGolden .windowChallengeAutoGolden,
+.windowChallenge3OffAutoGolden .windowChallenge3AutoGolden {
+	display: none;
 }
 
 .windowRepeat,
@@ -1852,27 +1885,42 @@ h9 {
 }
 
 
-
-
-
-
-
 .select2 {
 	position: relative;
-	font-size: 0.9vw;
+	font-size: 0.8vw;
 	color: white;
 	min-width: 13.50vw;
-	min-height: 2vw;
-	text-align: right;
+	max-width: 13.50vw;
+	margin-bottom: 0.1vw;
 }
 
+/* Dropdown results.
+Appears when you click the dropdown button! */
+.select2-container--default .select2-results>.select2-results__options {
+	max-height: 28vw !important;
+	font-size: 0.9vw;
+	line-height: 0.8vw;
+}
+
+/* Dropdown text button */
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-	position: relative;
-	border: 1px solid white;
+
 	background-color: #000;
+	border: 1px white solid;
 	color: white;
-	text-align: right;
-	min-height: 1.7vw
+	text-align: left;
+	min-height: 1.5vw;
+	max-height: 1.5vw;
+	padding-left: 0.25vw;
+}
+
+.select2-container .select2-selection--single {
+	display: contents;
+}
+
+.select2-control .select2-container {
+	height: auto !important;
+	padding: 0;
 }
 
 .select2-search--dropdown {
@@ -1889,6 +1937,18 @@ h9 {
 	background-color: #000;
 	color: white;
 }
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+	line-height: 1.3vw;
+	width: -webkit-fill-available;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+	height: 1.3vw;
+	right: 0px;
+}
+
+
 
 .select-wrapper {
 
