@@ -242,7 +242,7 @@ function autoMap() {
 	//If we're inside of the Life challenge.
 	//Will go to map chamber and sit back in the world without fighting until the cell we're on is Living.
 	if (challengeActive('Life') && !game.global.mapsActive) {
-		if (getPageSetting('life') && getPageSetting('lifeZone') > 0 && game.global.world >= getPageSetting('lifeZone') && getPageSetting('lifeStacks') > 0 && game.challenges.Life.stacks < getPageSetting('lifeStacks')) {
+		if (getPageSetting('life') && getPageSetting('lifeZone') > 0 && game.global.world >= getPageSetting('lifeZone') && getPageSetting('lifeStacks') > 0 && game.challenges.Life.stacks <= getPageSetting('lifeStacks')) {
 			var currCell = game.global.world + "_" + (game.global.lastClearedCell + 1);
 			if (!game.global.fighting && timeForFormatting(game.global.lastSoldierSentAt) >= 40) MODULES.maps.lifeCell = currCell;
 			if (MODULES.maps.lifeCell !== currCell && game.global.gridArray[game.global.lastClearedCell + 1].health !== 0 && game.global.gridArray[game.global.lastClearedCell + 1].mutation === 'Living') {
@@ -513,13 +513,13 @@ function autoMap() {
 			if (game.global.currentMapId === '') selectMap(selectedMap);
 			var themapobj = game.global.mapsOwnedArray[getMapIndex(selectedMap)];
 			var levelText;
-			if (themapobj.level > 0) {
+			if (themapobj && themapobj.level > 0) {
 				levelText = " Level: " + themapobj.level;
 			} else {
 				levelText = " Level: " + game.global.world;
 			}
-			var voidorLevelText = themapobj.location === "Void" ? " Void: " : levelText;
-			debug("Running selected " + selectedMap + voidorLevelText + " Name: " + themapobj.name, "maps", 'th-large');
+			var voidOrLevelText = themapobj.location === "Void" ? " Void: " : levelText;
+			debug("Running selected " + selectedMap + voidOrLevelText + " Name: " + themapobj.name, "maps", 'th-large');
 			runMap();
 			MODULES.maps.lastMapWeWereIn = getCurrentMapObject();
 		}

@@ -2,6 +2,8 @@ MODULES.mapFunctions = {};
 
 MODULES.mapFunctions.portalAfterVoids = false;
 MODULES.mapFunctions.hasHealthFarmed = '';
+MODULES.mapFunctions.hasSpireFarmed = '';
+MODULES.mapFunctions.hasVoidFarmed = '';
 MODULES.mapFunctions.runUniqueMap = '';
 MODULES.mapFunctions.challengeContinueRunning = false;
 MODULES.mapFunctions.hypothermia = { buyPackrat: false, }
@@ -117,7 +119,7 @@ function isDoingSpire() {
 	if (!game.global.spireActive) return false;
 	const settingPrefix = hdStats.isC3 ? 'c2' : hdStats.isDaily ? 'd' : '';
 	var spireNo = getPageSetting(settingPrefix + 'IgnoreSpiresUntil');
-	if (spireNo === -1 || spireNo === 0) return true;
+	if (spireNo >= 0) return true;
 	var spireZone = (1 + spireNo) * 100;
 	return game.global.world >= spireZone;
 }
@@ -468,7 +470,7 @@ function voidMaps() {
 			shouldMap = true;
 			//Uses a bone charge if the user has toggled the setting on.
 			if (defaultSettings.boneCharge && !mapSettings.boneChargeUsed && game.permaBoneBonuses.boosts.charges > 0 && !game.options.menu.pauseGame.enabled) {
-				debug('Consumed 1 bone shrine charge on zone ' + game.global.world + " and gained " + boneShrineOutput(1), "bones");
+				debug("Consumed 1 bone shrine charge on zone " + game.global.world + " and gained " + boneShrineOutput(1), "bones");
 				buyJobs(jobRatio);
 				game.permaBoneBonuses.boosts.consume();
 				mapSettings.boneChargeUsed = true;
@@ -476,7 +478,8 @@ function voidMaps() {
 
 			//Identifying if we need to do any form of HD Farming before actually running voids
 			//If we do then run HD Farm and stop this function until it has been completed.
-			if (defaultSettings.voidFarm && (defaultSettings.hitsSurvived > hdStats.hitsSurvivedVoid || defaultSettings.hdRatio < hdStats.vhdRatioVoid)) {
+			//Override for if we have already farmed enough maps. Gets reset when Void Map MAZ window is saved.
+			if (defaultSettings.voidFarm && MODULES.mapFunctions.hasVoidFarmed !== (getTotalPortals() + "_" + game.global.world) && (defaultSettings.hitsSurvived > hdStats.hitsSurvivedVoid || defaultSettings.hdRatio < hdStats.vhdRatioVoid)) {
 				//Print farming message if we haven't already started HD Farming for stats.
 				if (!mapSettings.voidFarm)
 					debug('Void Maps (z' + game.global.world + 'c' + (game.global.lastClearedCell + 2) + ') farming for stats before running void maps.', "map_Details");
@@ -539,14 +542,14 @@ function mapBonus() {
 	if (defaultSettings === null) return farmingDetails;
 	var mapBonusRatio = getPageSetting('mapBonusRatio');
 	//Will get map stacks if below our set hd threshold.
-	var healthCheck = mapBonusRatio > 0 && hdStats.hdRatio > mapBonusRatio && getPageSetting('mapBonusStacks') > game.global.mapBonus;
-	var healthStacks = healthCheck ? getPageSetting('mapBonusStacks') : 0;
+	var hdCheck = mapBonusRatio > 0 && hdStats.hdRatio > mapBonusRatio && getPageSetting('mapBonusStacks') > game.global.mapBonus;
+	var healthStacks = hdCheck ? getPageSetting('mapBonusStacks') : 0;
 	//Will get max map bonus stacks if we are doing an active spire.
 	var spireCheck = getPageSetting('MaxStacksForSpire') && isDoingSpire();
 	var spireStacks = spireCheck ? 10 : 0;
 
 	var settingIndex = null;
-	if (defaultSettings.active && !healthCheck && !spireCheck) {
+	if (defaultSettings.active && !hdCheck && !spireCheck) {
 		for (var y = 0; y < baseSettings.length; y++) {
 			if (y === 0) continue;
 			//Skip iterating lines if map bonus is capped.
@@ -563,8 +566,8 @@ function mapBonus() {
 		}
 	}
 
-	if ((settingIndex !== null && settingIndex >= 0) || healthCheck || spireCheck) {
-		if (healthCheck || spireCheck) {
+	if ((settingIndex !== null && settingIndex >= 0) || hdCheck || spireCheck) {
+		if (hdCheck || spireCheck) {
 			//Set default settings. If empty then set some of them.
 			var defaultEmpty = Object.keys(defaultSettings).length === 1;
 			defaultSettings = {
@@ -3022,11 +3025,11 @@ function hdFarm(skipHealthCheck, voidFarm) {
 		var hdFarmMaxMaps;
 		var hdFarmMinMaps;
 
-		if (voidFarm) {
+		//Void Farming
+		if (voidFarm && MODULES.mapFunctions.hasVoidFarmed !== (getTotalPortals() + "_" + game.global.world)) {
 			var voidSetting = getPageSetting('voidMapSettings')[0];
 			setting = {
 				autoLevel: true,
-				cell: 1,
 				hdMult: 1,
 				jobratio: voidSetting.jobratio,
 				level: -1,
@@ -3041,21 +3044,20 @@ function hdFarm(skipHealthCheck, voidFarm) {
 				setting.hdType = 'voidFarm';
 			}
 
-			hdFarmMapCap = Infinity;
-
+			hdFarmMapCap = typeof defaultSettings.mapCap !== 'undefined' ? defaultSettings.mapCap : 500;
 		}
+		//Hits Survived (Non-HDFarm setting)
 		else if (settingIndex === null) {
 			setting = {
 				autoLevel: true,
-				cell: 61,
 				hdBase: hitsSurvivedSetting,
 				hdMult: 1,
 				hdType: "hitsSurvived",
-				jobratio: typeof getPageSetting('mapBonusSettings')[0].jobratio !== 'undefined' ? getPageSetting('mapBonusSettings')[0].jobratio : "0,1,3",
+				jobratio: typeof defaultSettings.jobratio !== 'undefined' ? defaultSettings.jobratio : "0,1,3",
 				level: -1,
 				world: game.global.world
 			}
-			hdFarmMapCap = 500;
+			hdFarmMapCap = typeof defaultSettings.mapCap !== 'undefined' ? defaultSettings.mapCap : 500;
 			hdFarmMaxMaps = game.global.mapBonus < getPageSetting('mapBonusHealth') ? 10 : null;
 			hdFarmMinMaps = game.global.mapBonus < getPageSetting('mapBonusHealth') ? (game.global.universe === 1 ? (0 - game.portal.Siphonology.level) : 0) : null;
 		} else {
@@ -3803,6 +3805,7 @@ function resetMapVars(setting) {
 
 	if (setting) {
 		if (setting.hdType === 'hitsSurvived') MODULES.mapFunctions.hasHealthFarmed = (totalPortals + "_" + game.global.world);
+		if (mapSettings.voidFarm) MODULES.mapFunctions.hasVoidFarmed = (totalPortals + "_" + game.global.world);
 		setting.done = (totalPortals + "_" + game.global.world);
 	}
 	saveSettings();

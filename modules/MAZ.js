@@ -610,7 +610,7 @@ function MAZLookalike(titleText, varPrefix, event) {
 				tooltipText += "<div class='windowBoneDefault'>Auto Spend<br>Gather</div>";
 				tooltipText += "<div class='windowBoneDefault'>Auto Spend<br>Job Ratio</div>";
 			}
-			if (mapBonus) tooltipText += "<div class='windowJobRatio" + varPrefix + "\'>Job<br>Ratio</div>";
+			if (mapBonus || hdFarm) tooltipText += "<div class='windowJobRatio" + varPrefix + "\'>Job<br>Ratio</div>";
 
 			if (mapBonus) {
 				tooltipText += "<div class='windowSpecial" + varPrefix + "\'>Special</div>";
@@ -656,9 +656,10 @@ function MAZLookalike(titleText, varPrefix, event) {
 				defaultVals.autoBone = defaultSetting.autoBone ? defaultSetting.autoBone : false;
 				defaultVals.bonebelow = defaultSetting.bonebelow ? defaultSetting.bonebelow : 0;
 				defaultVals.world = defaultSetting.world ? defaultSetting.world : 0;
+				defaultVals.gather = defaultSetting.gather ? defaultSetting.gather : 'food';
 			}
 
-			if (mapBonus || voidMap || boneShrine)
+			if (mapBonus || voidMap || boneShrine || hdFarm)
 				defaultVals.jobratio = defaultSetting.jobratio ? defaultSetting.jobratio : '1,1,1,1';
 
 			if (mapBonus) {
@@ -732,7 +733,7 @@ function MAZLookalike(titleText, varPrefix, event) {
 					tooltipText += "<div class='windowBoneDefault'><select value='" + defaultVals.gather + "' id='windowBoneGatherDefault'>" + defaultGatherDropdown + "</select></div>";
 					tooltipText += "<div class='windowBoneDefault'><input value='" + defaultVals.jobratio + "' type='text' id='windowJobRatioDefault'/></div>";
 				}
-				if (mapBonus)
+				if (mapBonus || hdFarm)
 					tooltipText += "<div class='windowJobRatio" + varPrefix + "\'><input value='" + defaultVals.jobratio + "' type='text' id='windowJobRatioDefault'/></div>";
 				if (mapBonus) {
 					tooltipText += "<div class='windowSpecial" + varPrefix + "\'  onchange='updateWindowPreset()'><select value='" + defaultVals.special + "' id='windowSpecial'>" + defaultSpecialsDropdown + "</select></div>";
@@ -1465,7 +1466,7 @@ function settingsWindowSave(titleText, varPrefix, reopen) {
 			defaultSetting.world = parseInt(document.getElementById('windowBoneWorld').value, 10);
 		}
 
-		if (mapBonus || voidMap || boneShrine) defaultSetting.jobratio = document.getElementById('windowJobRatioDefault').value;
+		if (mapBonus || voidMap || boneShrine || hdFarm) defaultSetting.jobratio = document.getElementById('windowJobRatioDefault').value;
 		if (alchemy) defaultSetting.voidPurchase = readNiceCheckbox(document.getElementById('windowVoidPurchase'));
 		if (voidMap) {
 			defaultSetting.maxTenacity = readNiceCheckbox(document.getElementById('windowMaxTenacity'));
@@ -1681,13 +1682,13 @@ function settingsWindowSave(titleText, varPrefix, reopen) {
 
 	//Disable Void Map global variables when saving Void Map settings to ensure we aren't running voids at the wrong zone after updating.
 	if (voidMap) {
-		/* delete mapSettings.voidHitsSurvived;
-		delete mapSettings.boneChargeUsed;
-		delete mapSettings.voidHDIndex;
-		delete mapSettings.dropdown;
-		delete mapSettings.dropdown2;
-		delete mapSettings.voidTrigger;
-		delete mapSettings.portalAfterVoids; */
+		MODULES.mapFunctions.hasVoidFarmed = '';
+		if (mapSettings.boneChargeUsed) delete mapSettings.boneChargeUsed;
+		if (mapSettings.voidHDIndex) delete mapSettings.voidHDIndex;
+		if (mapSettings.dropdown) delete mapSettings.dropdown;
+		if (mapSettings.dropdown2) delete mapSettings.dropdown2;
+		if (mapSettings.voidTrigger) delete mapSettings.voidTrigger;
+		if (mapSettings.portalAfterVoids) delete mapSettings.portalAfterVoids;
 	}
 
 	//Disables Atlantrimp for 1 second and recalculates mapSettings variable.
@@ -1774,7 +1775,7 @@ function mazPopulateHelpWindow(titleText, trimple) {
 
 			if (game.permaBoneBonuses.boosts.owned > 0) mazHelp += "<li><b>Bone Charge</b> - The first time a line starts running Void Maps in each portal it will use a single Bone Charge.</li>";
 
-			mazHelp += "<li><b>Void Farm</b> - Will farm before running void maps if your void hits survived is below the input in <b>Void Farm Hits Survived</b> or your void hd ratio is below the input in <b>Void Farm Void HD Ratio</b>.</li>";
+			mazHelp += "<li><b>Void Farm</b> - Will farm before running void maps if your void hits survived is below the input in <b>Void Farm Hits Survived</b> or your void hd ratio is below the input in <b>Void Farm Void HD Ratio</b>. Farms until you have reached the map cap set in the <b>HD Farm</b> settings.</li>";
 
 			mazHelp += "<li><b>Void Farm Hits Survived</b> - Will farm to this void hits survived value before running void maps.</li>";
 
@@ -1792,6 +1793,7 @@ function mazPopulateHelpWindow(titleText, trimple) {
 			mazHelp += "<li class=\"indent\">Input should look like '1,1,1,1' (Farmers, Lumberjacks, Miners, Scientists). If you don't want Farmers, Miners or Scientists you can input '0,1' for this setting.</li>";
 		}
 		if (hdFarm) {
+			mazHelp += "<li><b>Job Ratio</b> - The job ratio to use when Map Bonus is set to run from the <b>Hits Survived</b> setting.</li>"
 			mazHelp += "<li><b>Map Cap</b> - The maximum amount of maps you would like to run during this farm. If set to -1 it will repeat an Infinite amount of times and you'll have to manually stop farming, would only recommend this if you're confident you'll be able to get enough stats to finish the farm.</li>";
 		}
 		if (alchemy) {
@@ -2451,7 +2453,6 @@ function addRow(varPrefix, titleText) {
 }
 
 function removeRow(index, titleText) {
-
 
 	var mapFarm = titleText.includes('Map Farm');
 	var mapBonus = titleText.includes('Map Bonus');
