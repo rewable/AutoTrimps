@@ -240,6 +240,7 @@ function toggleCatchUpMode() {
 		if (atSettings.loops.guiLoopInterval) clearInterval(atSettings.loops.guiLoopInterval);
 		atSettings.loops.mainLoopInterval = null;
 		atSettings.loops.atTimeLapseFastLoop = false;
+		atSettings.loops.guiLoopInterval = null;
 		gameLoop = originalGameLoop;
 		atSettings.loops.mainLoopInterval = setInterval(mainLoop, atSettings.runInterval);
 		atSettings.loops.guiLoopInterval = setInterval(guiLoop, atSettings.runInterval * 10);
@@ -264,11 +265,32 @@ function toggleCatchUpMode() {
 			if (loops % getPageSetting('timeWarpFrequency') === 0 || newZone) {
 				mainLoop();
 				//If user want to see the games UI then run this code every n game loops.
-				if (getPageSetting('timeWarpDisplay')) {
+				if (getPageSetting('timeWarpDisplay') && usingRealTimeOffline) {
 					usingRealTimeOffline = false;
 					updateGoodBar();
 					updateBadBar(getCurrentEnemy_new());
+					document.getElementById("goodGuyHealthMax").innerHTML = prettify(game.global.soldierHealthMax);
+					document.getElementById("badGuyHealthMax").innerHTML = prettify(getCurrentEnemy_new().maxHealth);
+
+					var blockDisplay = "";
+					if (game.global.universe == 2) {
+						var esMax = game.global.soldierEnergyShieldMax;
+						var esMult = getEnergyShieldMult();
+						var layers = Fluffy.isRewardActive('shieldlayer');
+						if (layers > 0) {
+							esMax *= layers + 1;
+							esMult *= layers + 1;
+						}
+						blockDisplay = prettify(esMax) + " (" + Math.round(esMult * 100) + "%)";
+					}
+					else blockDisplay = prettify(game.global.soldierCurrentBlock);
+					document.getElementById("goodGuyBlock").innerHTML = blockDisplay;
+					document.getElementById("goodGuyAttack").innerHTML = calculateDamage(game.global.soldierCurrentAttack, true, true);
+					var badAttackElem = document.getElementById("badGuyAttack");
+					badAttackElem.innerHTML = calculateDamage(getCurrentEnemy_new().attack, true, false, false, getCurrentEnemy_new());
+
 					updateLabels(true);
+					displayMostEfficientEquipment();
 					usingRealTimeOffline = true;
 				}
 			}
@@ -277,6 +299,7 @@ function toggleCatchUpMode() {
 			farmingDecision();
 			autoMap();
 			callBetterAutoFight();
+			autoPortalCheck();
 			if (loops % 10 === 0 || newZone) updateAutoMapsStatus();
 			if (game.global.universe === 1) checkStanceSetting();
 			if (game.global.universe === 2) equalityManagement();
@@ -295,6 +318,11 @@ function callFunction(id) {
 			if (typeof debug === "function") debug(id + " failed to run.<br>" + e)
 			else console.log(id + " failed to run.<br>" + e);
 		}
+}
+
+//Offline mode check
+function shouldRunInTimeWarp() {
+	return !usingRealTimeOffline || (usingRealTimeOffline && !getPageSetting('timeWarpSpeed'));
 }
 
 function mainLoop() {
@@ -342,23 +370,10 @@ function mainLoop() {
 	//This needs to be run here so that any variables that are reset at the start of a zone are reset before hdStats and mapSettings variables are updated.
 	mainCleanup();
 
-	//Offline mode check
-	var shouldRunTW = !usingRealTimeOffline || (usingRealTimeOffline && !getPageSetting('timeWarpSpeed'));
-
 	if (atSettings.intervals.oneSecond) {
 		hdStats = new HDStats();
 	}
-	if (shouldRunTW) farmingDecision();
-
-	//Void, AutoLevel, Breed Timer, Tenacity information
-	if (!usingRealTimeOffline && document.getElementById('additionalInfo') !== null) {
-		var freeVoidsText = 'Void: ' + ((game.permaBoneBonuses.voidMaps.owned === 10 ? Math.floor(game.permaBoneBonuses.voidMaps.tracker / 10) : game.permaBoneBonuses.voidMaps.tracker / 10) + '/10');
-		var autoLevelText = " | Auto Level: " + hdStats.autoLevel;
-		var breedTimerText = game.global.universe === 1 ? " | B: " + ((game.jobs.Amalgamator.owned > 0) ? Math.floor((new Date().getTime() - game.global.lastSoldierSentAt) / 1000) : Math.floor(game.global.lastBreedTime / 1000)) + 's' : "";
-		var tenacityText = game.global.universe === 2 && game.portal.Tenacity.radLevel > 0 ? " | T: " + (Math.floor(game.portal.Tenacity.getTime()) + "m") : "";
-
-		document.getElementById('additionalInfo').innerHTML = freeVoidsText + autoLevelText + breedTimerText + tenacityText;
-	}
+	if (shouldRunInTimeWarp()) farmingDecision();
 
 	if (MODULES.maps.slowScumming && game.global.mapRunCounter !== 0) {
 		if (game.global.mapBonus === 10) MODULES.maps.slowScumming = false;
@@ -374,7 +389,7 @@ function mainLoop() {
 	//Sets the resources needed for the upgrades you have to buy
 	setResourceNeeded();
 
-	if (shouldRunTW) {
+	if (shouldRunInTimeWarp()) {
 		//AutoMaps
 		autoMap();
 		updateAutoMapsStatus();
@@ -402,9 +417,11 @@ function mainLoop() {
 	autoEquip();
 
 	//Portal
-	autoPortalCheck();
+
+	if (shouldRunInTimeWarp()) autoPortalCheck();
 	//Equip highlighting
-	displayMostEfficientEquipment();
+
+	if (shouldRunInTimeWarp()) displayMostEfficientEquipment();
 
 	//Logic for Universe 1
 	mainLoopU1();
@@ -429,12 +446,14 @@ function mainLoop() {
 			if (MODULES.popups.remainingTime <= 0) MODULES.popups.remainingTime = 0;
 		}, 100);
 	}
+
+	//Void, AutoLevel, Breed Timer, Tenacity information
+	makeAdditionalInfo();
 }
 
 //U1 functions
 function mainLoopU1() {
 	if (game.global.universe !== 1) return;
-	var shouldRunTW = !usingRealTimeOffline || (usingRealTimeOffline && !getPageSetting('timeWarpSpeed'));
 	//Core
 	geneAssist();
 	autoRoboTrimp();
@@ -455,7 +474,7 @@ function mainLoopU1() {
 	if (game.global.mapsUnlocked && challengeActive('Daily') && getPageSetting('avoidEmpower') && typeof game.global.dailyChallenge.empower !== 'undefined' && !game.global.preMapsActive && !game.global.mapsActive && game.global.soldierHealth > 0) avoidEmpower();
 
 	//Stance
-	if (shouldRunTW) checkStanceSetting();
+	if (shouldRunInTimeWarp()) checkStanceSetting();
 
 	//Spire. Exit cell & respec
 	if (game.global.spireActive) {
@@ -467,11 +486,10 @@ function mainLoopU1() {
 //U2 functions
 function mainLoopU2() {
 	if (game.global.universe !== 2) return;
-	var shouldRunTW = !usingRealTimeOffline || (usingRealTimeOffline && !getPageSetting('timeWarpSpeed'));
 	//Archeology
 	/* if (getPageSetting('archaeology') && challengeActive('Archaeology')) archstring(); */
 	//Auto Equality Management
-	if (shouldRunTW) {
+	if (shouldRunInTimeWarp()) {
 		if (getPageSetting('equalityManagement') === 1) equalityManagementBasic();
 		if (getPageSetting('equalityManagement') === 2) equalityManagement();
 	}

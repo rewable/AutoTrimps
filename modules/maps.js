@@ -23,7 +23,6 @@ function runSelectedMap(mapId, madAdjective) {
 
 function updateAutoMapsStatus(get) {
 	var status = '';
-
 	//Setting up status
 	if (!game.global.mapsUnlocked) status = 'Maps not unlocked!';
 	else if (game.global.mapsActive && getCurrentMapObject().noRecycle && getCurrentMapObject().location !== 'Bionic' && getCurrentMapObject().location !== 'Void' && (mapSettings.mapName !== 'Quagmire Farm' && getCurrentMapObject().location !== 'Darkness')) status = getCurrentMapObject().name;
@@ -33,6 +32,16 @@ function updateAutoMapsStatus(get) {
 	else status = 'Advancing';
 
 	if (getPageSetting('autoMaps') === 0) status = '[Auto Maps Off] ' + status;
+
+
+	if (usingRealTimeOffline && getPageSetting('timeWarpDisplay')) {
+		var ticks = offlineProgress.ticksProcessed;
+		var maxTicks = offlineProgress.progressMax;
+		var barWidth = ((ticks / maxTicks) * 100).toFixed(1) + "%";
+
+		status = "Time Warp - " + barWidth + "<br>" + status;
+	}
+
 	var resourceType = game.global.universe === 1 ? 'Helium' : 'Radon';
 	var resourceShortened = game.global.universe === 1 ? 'He' : 'Rn';
 	var getPercent = (game.stats.heliumHour.value() /
@@ -63,6 +72,12 @@ function updateAutoMapsStatus(get) {
 	if ((!usingRealTimeOffline || getPageSetting('timeWarpDisplay')) && document.getElementById('hiderStatus') !== null) {
 		if (document.getElementById('hiderStatus').innerHTML !== hiderStatus) document.getElementById('hiderStatus').innerHTML = hiderStatus;
 		document.getElementById('hiderStatus').setAttribute("onmouseover", makeResourceTooltip(true));
+	}
+	//Additional Info tooltip 
+	if ((!usingRealTimeOffline || getPageSetting('timeWarpDisplay')) && document.getElementById('additionalInfo') !== null) {
+		var infoStatus = makeAdditionalInfo();
+		if (document.getElementById('additionalInfo').innerHTML !== infoStatus) document.getElementById('additionalInfo').innerHTML = infoStatus;
+		document.getElementById('additionalInfo').parentNode.setAttribute("onmouseover", makeAdditionalInfoTooltip(true));
 	}
 }
 
@@ -176,6 +191,74 @@ function makeResourceTooltip(mouseover) {
 		if (document.getElementById('tipTitle').innerHTML !== 'Automaps Status') tooltip(`${resource} per hour info`, 'customText', 'lock', tooltipText, false, 'center');
 		verticalCenterTooltip(true);
 	}
+}
+
+function makeAdditionalInfoTooltip(mouseover) {
+	var tooltipText = '';
+
+	if (mouseover) {
+		tooltipText = 'tooltip(' +
+			'\"Additional Info\", ' +
+			'\"customText\", ' +
+			'event, ' + '\"';
+	}
+
+	if (game.permaBoneBonuses.voidMaps.owned > 0) {
+		tooltipText += `<p><b>Void</b><br>`;
+		tooltipText += `The progress you have towards a free void map from the 'Void Maps' permanent bone upgrade</p>`;
+
+	}
+	tooltipText += `<p><b>Auto Level</b><br>`;
+	tooltipText += `The level that the script recommends using whilst farming.</p>`;
+
+
+
+	if (game.global.universe === 1 && game.jobs.Amalgamator.owned > 0) {
+		tooltipText += `<p><b>Breed Timer (B)</b><br>`;
+		tooltipText += `The breeding time of your trimps, used to identify how long your <b>Anticipation</b> timer will be if you were to send an army to fight.</p>`;
+	}
+	//Tenacity timer when you have tenacity
+	else if (game.global.universe === 2 && game.portal.Tenacity.radLevel > 0) {
+		tooltipText += `<p><b>Tenacity Timer (T)</b><br>`;
+		tooltipText += `Your current tenacity timer in minutes.</p>`;
+	}
+
+	if (mouseover) {
+		tooltipText += '\")';
+		return tooltipText;
+	}
+	else {
+		if (document.getElementById('tipTitle').innerHTML !== 'Additional Info') tooltip('Additional Info Tooltip', 'customText', 'lock', tooltipText, false, 'center');
+		verticalCenterTooltip(true);
+	}
+}
+
+function makeAdditionalInfo() {
+	//Void, AutoLevel, Breed Timer, Tenacity information
+
+	var lineBreak = ` | `;
+
+	var description = ``;
+	//Free void tracker
+	if (game.permaBoneBonuses.voidMaps.owned > 0) {
+		var voidValue = game.permaBoneBonuses.voidMaps.owned === 10 ? Math.floor(game.permaBoneBonuses.voidMaps.tracker / 10) : game.permaBoneBonuses.voidMaps.tracker / 10;
+		description += `Void: ${voidValue}/10`;
+		description += lineBreak;
+	}
+	//Mapping auto level
+	description += `Auto Level: ${hdStats.autoLevel}`;
+	//Breed timer when you have an amalgamator
+	if (game.global.universe === 1 && game.jobs.Amalgamator.owned > 0) {
+		description += lineBreak;
+		description += `B: ${Math.floor((new Date().getTime() - game.global.lastSoldierSentAt) / 1000)}s`;
+	}
+	//Tenacity timer when you have tenacity
+	else if (game.global.universe === 2 && game.portal.Tenacity.radLevel > 0) {
+		description += lineBreak;
+		description += `T: ${Math.floor(game.portal.Tenacity.getTime())}m`;
+	}
+
+	return description;
 }
 
 //Looks to see if we currently have a map that matches the criteria we want to run if not tells us to create a new one
