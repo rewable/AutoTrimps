@@ -415,6 +415,7 @@ function voidMaps() {
 			if (!settingShouldRun(currSetting, world, 0, settingName) && !settingShouldRun(currSetting, world, zoneAddition, settingName)) continue;
 		}
 		else if (!settingShouldRun(currSetting, world, 0, settingName)) continue;
+
 		for (var x = 0; x < zoneAddition + 1; x++) {
 			//Running voids regardless of HD if we reach our max void zone / Running voids if our voidHDRatio is greater than our target value. Will automatically run voids if HD Ratio on next zone is too high! aka can't gamma burst
 			var skipLine = 0;
@@ -495,7 +496,11 @@ function voidMaps() {
 			//Identifying if we need to do any form of HD Farming before actually running voids
 			//If we do then run HD Farm and stop this function until it has been completed.
 			//Override for if we have already farmed enough maps. Gets reset when Void Map MAZ window is saved.
-			if (defaultSettings.voidFarm && MODULES.mapFunctions.hasVoidFarmed !== (getTotalPortals() + "_" + game.global.world) && (defaultSettings.hitsSurvived > hdStats.hitsSurvivedVoid || defaultSettings.hdRatio < hdStats.vhdRatioVoid)) {
+			if (defaultSettings.voidFarm && MODULES.mapFunctions.hasVoidFarmed !== (getTotalPortals() + "_" + game.global.world) &&
+				((defaultSettings.hitsSurvived > 0 && defaultSettings.hitsSurvived > hdStats.hitsSurvivedVoid) ||
+					(defaultSettings.hdRatio > 0 && defaultSettings.hdRatio < hdStats.vhdRatioVoid)
+				)
+			) {
 				//Print farming message if we haven't already started HD Farming for stats.
 				if (!mapSettings.voidFarm && getPageSetting('autoMaps'))
 					debug(mapName + ' (z' + game.global.world + 'c' + (game.global.lastClearedCell + 2) + ') farming for stats before running void maps.', "map_Details");
@@ -1096,7 +1101,7 @@ function smithyFarm() {
 				mappingDetails(mapName, mapLevel, mapSpecial, smithyGoal);
 				MODULES.maps.mapRepeatsSmithy = [0, 0, 0];
 				if (!challengeActive('Quest') && setting.meltingPoint) runUniqueMap('Melting Point');
-				resetMapVars(setting);
+				resetMapVars(setting, settingName);
 			}
 		}
 
@@ -3232,7 +3237,7 @@ function farmingDecision() {
 			mapBonus(),
 			experience(),
 			toxicity(),
-			mapDestacking()
+			mapDestacking(),
 		];
 
 		//Skipping map farming if in Decay and above stack count user input
@@ -3245,7 +3250,7 @@ function farmingDecision() {
 			prestigeClimb(),
 			prestigeRaiding(),
 			bionicRaiding(),
-			voidMaps()
+			voidMaps(),
 		];
 
 		if (isDoingSpire() && getPageSetting('skipSpires') && game.global.mapBonus === 10) return farmingDetails;
@@ -3281,7 +3286,7 @@ function farmingDecision() {
 			mapBonus(),
 			glass(),
 			smithless(),
-			wither()
+			wither(),
 		];
 	}
 
@@ -3333,12 +3338,12 @@ function settingShouldRun(currSetting, world, zoneReduction, settingName) {
 		}
 	}
 
-
 	//Skips if past designated end zone
 	if (game.global.world > currSetting.endzone + zoneReduction) return false;
 	//Skips if past designated max void zone
-	if (typeof currSetting.maxvoidzone !== 'undefined' && game.global.world > (currSetting.maxvoidzone + zoneReduction)) return false;
-	//Check to see if the cell is liquified and if so we can replace the cell condition with it
+	if (typeof currSetting.maxvoidzone !== 'undefined' && game.global.world > (currSetting.maxvoidzone + zoneReduction)) {
+		return false;
+	}//Check to see if the cell is liquified and if so we can replace the cell condition with it
 	var liquified = game.global.lastClearedCell === -1 && game.global.gridArray && game.global.gridArray[0] && game.global.gridArray[0].name === "Liquimp";
 	//If cell input is greater than current zone then skips
 	if (!liquified && game.global.lastClearedCell + 2 < currSetting.cell) return false;
@@ -3859,7 +3864,7 @@ function getBiome(mapGoal, resourceGoal) {
 function resetMapVars(setting, settingName) {
 	const totalPortals = getTotalPortals();
 	mapSettings.levelCheck = Infinity;
-	mapSettings.mapName = "";
+	mapSettings.mapName = '';
 	MODULES.maps.mapTimer = 0;
 	MODULES.maps.mapRepeats = 0;
 	MODULES.maps.slowScumming = false;

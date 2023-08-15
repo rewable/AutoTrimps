@@ -1226,7 +1226,6 @@ function calcHDRatio(targetZone, type, maxTenacity, checkOutputs) {
 	if (!targetZone) targetZone = game.global.world;
 	if (!type) type = "world"
 	if (!maxTenacity) maxTenacity = false;
-
 	//Init
 	if (type === 'world') {
 		var enemyName = 'Turtlimp';
@@ -1557,7 +1556,7 @@ function simpleSeconds_AT(what, seconds, workerRatio) {
 						getPageSetting('heirloomStaffMap') !== 'undefined' ? ('heirloomStaffMap') :
 							getPageSetting('heirloomStaffWorld') !== 'undefined' ? ('heirloomStaffWorld') :
 								null;
-	if (game.global.StaffEquipped.name !== heirloom && HeirloomSearch(heirloom) === undefined) heirloom = null;
+	if (game.global.StaffEquipped.name !== heirloom && heirloomSearch(heirloom) === undefined) heirloom = null;
 	var job = game.jobs[jobName];
 	var trimpworkers = ((game.resources.trimps.realMax() / 2) - game.jobs.Explorer.owned - game.jobs.Meteorologist.owned - game.jobs.Worshipper.owned);
 	if (challengeActive('Trappapalooza')) trimpworkers = game.resources.trimps.owned;
@@ -1582,7 +1581,7 @@ function simpleSeconds_AT(what, seconds, workerRatio) {
 
 	if (what === "food" || what === "wood" || what === "metal") {
 		if (workerRatio) {
-			amt *= calculateParityBonus_AT(desiredRatios, HeirloomSearch(heirloom));
+			amt *= calculateParityBonus_AT(desiredRatios, heirloomSearch(heirloom));
 		}
 		else amt *= getParityBonus();
 		if (autoBattle.oneTimers.Gathermate.owned)

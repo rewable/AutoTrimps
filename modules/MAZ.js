@@ -1665,16 +1665,18 @@ function settingsWindowSave(titleText, varPrefix, reopen) {
 
 	//Set settings inside AT
 	setPageSetting(varPrefix + 'Settings', setting, currSettingUniverse);
-	//Set the amount of rows into the save file so that we can mark settings as done properly
-	var obj = [];
-	for (var x = 0; x < 30; x++) {
-		obj[x] = {};
-		obj[x].done = '';
-	}
+	if (!golden) {
+		//Set the amount of rows into the save file so that we can mark settings as done properly
+		var obj = [];
+		for (var x = 0; x < 30; x++) {
+			obj[x] = {};
+			obj[x].done = '';
+		}
 
-	if (typeof game.global.addonUser !== 'object') game.global.addonUser = {};
-	if (typeof game.global.addonUser[varPrefix + 'Settings'] === 'undefined') game.global.addonUser[varPrefix + 'Settings'] = {};
-	game.global.addonUser[varPrefix + 'Settings'][value] = obj;
+		if (typeof game.global.addonUser !== 'object') setupAddonUser(true);
+		if (typeof game.global.addonUser[varPrefix + 'Settings'] === 'undefined') setupAddonUser(true);
+		game.global.addonUser[varPrefix + 'Settings'][value] = obj;
+	}
 
 	var elem = document.getElementById("tooltipDiv");
 	swapClass(document.getElementById('tooltipDiv').classList[0], "tooltipExtraNone", elem);
@@ -1789,9 +1791,9 @@ function mazPopulateHelpWindow(titleText, trimple) {
 
 			mazHelp += "<li><b>Void Farm</b> - Will farm before running void maps if your void hits survived is below the input in <b>Void Farm Hits Survived</b> or your void hd ratio is below the input in <b>Void Farm Void HD Ratio</b>. Farms until you have reached the map cap set in the <b>HD Farm</b> settings.</li>";
 
-			mazHelp += "<li><b>Void Farm Hits Survived</b> - Will farm to this void hits survived value before running void maps.</li>";
+			mazHelp += "<li><b>Void Farm Hits Survived</b> - Will farm to this void hits survived value before running void maps. Must be set above 0 to be used otherwise will be ignored.</li>";
 
-			mazHelp += "<li><b>Void Farm HD Ratio</b> - Will farm to this void HD ratio survived value before running void maps.</li>";
+			mazHelp += "<li><b>Void Farm HD Ratio</b> - Will farm to this void HD ratio survived value before running void maps. Must be set above 0 to be used otherwise will be ignored.</li>";
 
 			mazHelp += "<li><b>Void Farm Job Ratio</b> - The job ratio to use when farming stats before running void maps.</li>";
 			mazHelp += "<li class=\"indent\">Input should look like '1,1,1,1' (Farmers, Lumberjacks, Miners, Scientists). If you don't want Farmers, Miners or Scientists you can input '0,1' for this setting.</li>";

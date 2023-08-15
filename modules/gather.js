@@ -51,7 +51,8 @@ function autoGather() {
 		autoGatherMetal();
 		return;
 	}
-
+	var trapsAvailable = document.getElementById('buyCol').style.visibility !== 'hidden';
+	var cantAffordTraps = game.resources.food.owned < 10 || game.resources.wood.owned < 10
 	//Need to check this works in u2!
 	var needBattle = !game.upgrades.Battle.done && game.resources.science.owned < 10;
 	var notFullPop = game.resources.trimps.owned < game.resources.trimps.realMax();
@@ -88,12 +89,12 @@ function autoGather() {
 	//Relevant means we gain at least 10% more trimps per sec while trapping (which basically stops trapping during later zones)
 	//And there is enough breed time remaining to open an entire trap (prevents wasting time and traps during early zones)
 	var trappingIsRelevant = trapperTrapUntilFull || breedingPS().div(10).lt(calcTPS() * (game.portal.Bait.level + 1));
-	var trapWontBeWasted = breedTimeRemaining().gte(1 / calcTPS()) || game.global.playerGathering === "trimps" && breedTimeRemaining().lte(MODULES.breedtimer.DecimalBreed(0.1));
+	var trapWontBeWasted = trapperTrapUntilFull || (breedTimeRemaining().gte(1 / calcTPS()) || game.global.playerGathering === "trimps" && breedTimeRemaining().lte(MODULES.breedtimer.DecimalBreed(0.1)));
 
 	//Highest Priority Food/Wood for traps (Early Game, when trapping is mandatory)
-	if (game.global.world <= 3 &&
+	if (!trapsAvailable || cantAffordTraps || (game.global.world <= 3 &&
 		(game.global.universe === 1 ? (game.global.totalHeliumEarned <= 500000) :
-			(game.global.totalRadonEarned <= 5000))
+			(game.global.totalRadonEarned <= 5000)))
 	) {
 		//If not building and not trapping
 		if (!trapsReady && game.global.buildingsQueue.length === 0 && (game.global.playerGathering !== 'trimps' || game.buildings.Trap.owned === 0)) {
@@ -102,6 +103,7 @@ function autoGather() {
 				safeSetGather('food');
 				return;
 			}
+
 			if (game.triggers.wood.done && game.resources.wood.owned < 10) {
 				safeSetGather('wood');
 				return;
@@ -262,15 +264,23 @@ function autoGather() {
 		}
 	}
 	if (document.getElementById('scienceCollectBtn').style.display !== 'none' && document.getElementById('science').style.visibility !== 'hidden') {
-		if (manualGather !== 3 && game.resources.science.owned < getPsString_AT('science', true) * MODULES["gather"].minScienceSeconds && researchAvailable && game.global.turkimpTimer < 1 && haveWorkers)
+		if (manualGather !== 3 && game.resources.science.owned < getPsString_AT('science', true) * MODULES["gather"].minScienceSeconds && researchAvailable && game.global.turkimpTimer < 1 && haveWorkers) {
 			safeSetGather('science');
-		else
+			return;
+		}
+		else {
 			safeSetGather(lowestResource);
+			return;
+		}
 	}
-	else if (trapTrimpsOK && game.global.trapBuildToggled === true && lowOnTraps)
+	else if (trapTrimpsOK && game.global.trapBuildToggled === true && lowOnTraps) {
 		safeSetGather('buildings');
-	else
+		return;
+	}
+	else {
 		safeSetGather(lowestResource);
+		return;
+	}
 }
 
 //Mining/Building only setting
