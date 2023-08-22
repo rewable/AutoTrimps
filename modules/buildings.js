@@ -7,27 +7,20 @@ MODULES.buildings = {
 
 function safeBuyBuilding(building, amt) {
 	if (!building || !amt)
-		return false;
+		return;
 	if (isBuildingInQueue(building))
-		return false;
+		return;
 	if (game.buildings[building].locked)
-		return false;
+		return;
 	if (!canAffordBuilding(building, false, false, false, false, amt))
-		return false;
+		return;
 
 	//Cap the amount we purchase to ensure we don't spend forever building
 	if (!bwRewardUnlocked("Foremany") && game.global.world <= 10) amt = 1;
 
-	const currBuyAmt = game.global.buyAmt;
-	game.global.buyAmt = amt;
-
-	if (!game.buildings[building].locked && canAffordBuilding(building)) {
-		buyBuilding(building, true, true, amt);
-	}
-
-	game.global.buyAmt = currBuyAmt;
+	buyBuilding(building, true, true, amt);
 	if (building !== 'Trap') debug('Building ' + amt + ' ' + building + (amt > 1 ? 's' : ''), "buildings", '*hammer2');
-	return true;
+	return;
 }
 
 function buyStorage(hypoZone) {
@@ -76,6 +69,7 @@ function getPsString_AT(what) {
 	var index = resOrder.indexOf(what);
 	var job = game.jobs[jobs[index]];
 	var book = game.upgrades["Speed" + books[index]];
+	var mBook = game.upgrades["Mega" + books[index]];
 	var base = (what === "fragments") ? 0.4 : 0.5;
 	//Add base
 	//Add job count
@@ -281,6 +275,7 @@ function getPsString_AT(what) {
 function advancedNurseries() {
 	if (!getPageSetting('advancedNurseries')) return false;
 	if (game.stats.highestLevel.valueTotal() < 230) return false;
+	if (game.global.universe !== 1) return false;
 	//Builds nurseries if lacking health & shouldn't HD farm.
 	//Only build nurseries if: A) Lacking Health & B) Doesn't need to HD farm & C) Has max health map stacks
 	//Also, it requires less health during spire
@@ -293,15 +288,15 @@ function advancedNurseries() {
 function mostEfficientHousing() {
 
 	//Housing
-	const HousingTypes = ['Hut', 'House', 'Mansion', 'Hotel', 'Resort', 'Gateway', 'Collector'];
-	// Which houses we actually want to check
-	var housingTargets = [];
+	const housingTypes = ['Hut', 'House', 'Mansion', 'Hotel', 'Resort', 'Gateway', 'Collector'];
 
 	const buildingSettings = getPageSetting('buildingSettingsArray');
 	const resourcefulMod = game.global.universe === 1 ? Math.pow(1 - game.portal.Resourceful.modifier, game.portal.Resourceful.level) : 1;
-
-	for (var house of HousingTypes) {
-		var maxHousing = buildingSettings[house].buyMax === 0 ? Infinity : buildingSettings[house].buyMax;
+	// Which houses we actually want to check
+	var housingTargets = [];
+	var maxHousing;
+	for (var house of housingTypes) {
+		maxHousing = buildingSettings[house].buyMax === 0 ? Infinity : buildingSettings[house].buyMax;
 		if (!game.buildings[house].locked && game.buildings[house].owned < maxHousing) {
 			housingTargets.push(house);
 		}
@@ -311,19 +306,33 @@ function mostEfficientHousing() {
 		name: "",
 		time: Infinity
 	}
+
+	//Track resource types and their production per second.
+	const resourceTypes = ['food', 'wood', 'metal', 'gems', 'fragments'];
+	const resourcePerSecond = {};
+	for (var resource in resourceTypes) {
+		resourcePerSecond[resourceTypes[resource]] = getPsString_AT(resourceTypes[resource]);
+	}
+
 	var dontbuy = [];
+	var avgProduction;
+
+	const questActive = challengeActive('Quest') && currQuest() === 4;
+	const hypoActive = challengeActive('Hypothermia');
+	const woodChallengeActive = challengeActive('Metal') || challengeActive('Transmute');
 
 	for (var housing of housingTargets) {
-
 		var worstTime = -Infinity;
 		var currentOwned = game.buildings[housing].owned;
-		var buildingspending = buildingSettings[housing].percent / 100
+		var buildingspending = buildingSettings[housing].percent / 100;
 		//If setting is disabled then don't buy building.
 		if (!buildingSettings[housing].enabled) dontbuy.push(housing);
 		//Stops Collectors being purchased when on Quest gem quests.
-		if (challengeActive('Quest') && currQuest() === 4 && housing === 'Collector') dontbuy.push(housing);
+		if (questActive && housing === 'Collector') dontbuy.push(housing);
+		//Fix for Infinity collectors since it doesn't take resourceful into account.
+		if (housing === 'Collector' && game.buildings[housing].purchased >= 6000) dontbuy.push(housing);
 		//Stops buildings that cost wood from being pushed if we're running Hypothermia and have enough wood for a bonfire.
-		if (challengeActive('Hypothermia') && (housing !== 'Collector' || housing !== 'Gateway') && game.resources.wood.owned > game.challenges.Hypothermia.bonfirePrice()) dontbuy.push(housing);
+		if (hypoActive && (housing !== 'Collector' || housing !== 'Gateway') && game.resources.wood.owned > game.challenges.Hypothermia.bonfirePrice()) dontbuy.push(housing);
 		//Stops Food buildings being pushed to queue if Tribute Farming with Buy Buildings toggle disabled.
 		if (mapSettings.mapName === 'Tribute Farm' && !mapSettings.buyBuildings && housing !== 'Collector') dontbuy.push(housing);
 
@@ -335,14 +344,14 @@ function mostEfficientHousing() {
 		}
 
 		for (var resource in game.buildings[housing].cost) {
+			if (dontbuy.includes(housing)) continue;
 			// Get production time for that resource
 			var baseCost = game.buildings[housing].cost[resource][0];
 			var costScaling = game.buildings[housing].cost[resource][1];
-			var avgProduction = getPsString_AT(resource, true);
+			if (woodChallengeActive && resource === 'metal') avgProduction = resourcePerSecond['wood'];
+			else avgProduction = resourcePerSecond[resource];
 			if (avgProduction <= 0) avgProduction = 1;
-			if (challengeActive('Transmute') && resource === 'metal') avgProduction = getPsString_AT('wood', true);
-			if (Math.max(baseCost * Math.pow(costScaling, currentOwned) * resourcefulMod) > (game.resources[resource].owned// - MODULES.resourceNeeded[resource]
-			) * buildingspending) dontbuy.push(housing);
+			if (Math.max(baseCost * Math.pow(costScaling, currentOwned) * resourcefulMod) > (game.resources[resource].owned) * buildingspending) dontbuy.push(housing);
 			if (game.global.universe === 2 && housing === 'Gateway' && resource === 'fragments' && buildingSettings.SafeGateway.enabled && (buildingSettings.SafeGateway.zone === 0 || buildingSettings.SafeGateway.zone > game.global.world)) {
 				if (game.resources[resource].owned < ((perfectMapCost_Actual(10, getAvailableSpecials('lmc', true)) * buildingSettings.SafeGateway.mapCount) + Math.max(baseCost * Math.pow(costScaling, currentOwned)))) dontbuy.push(housing);
 			}
@@ -355,7 +364,7 @@ function mostEfficientHousing() {
 			mostEfficient.time = worstTime;
 		}
 	}
-	if (mostEfficient.name === "") mostEfficient.name = null;
+	if (mostEfficient.name === '') mostEfficient.name = null;
 
 	return mostEfficient.name;
 }
@@ -372,32 +381,31 @@ function buyBuildings() {
 
 	//A quick way to identify if we are running Hypothermia and what our very first farm zone is for autostorage manipulation purposes.
 	//Need to have it setup to go through every setting to ensure we don't miss the first one after introducing the priority input.
-	var hypoZone = 0;
-	if (challengeActive('Hypothermia') && getPageSetting('hypothermiaSettings')[0].active && getPageSetting('hypothermiaSettings')[0].autostorage && getPageSetting('hypothermiaSettings').length > 0) {
-		const hypoBaseSettings = getPageSetting('hypothermiaSettings');
-		for (var y = 0; y < hypoBaseSettings.length; y++) {
-			if (!hypoBaseSettings[y].active) {
-				continue;
+	if (challengeActive('Hypothermia')) {
+		var hypoZone = 0;
+		const hypoSettings = getPageSetting('hypothermiaSettings');
+		if (hypoSettings[0].active && hypoSettings[0].autostorage && hypoSettings.length > 0) {
+			for (var y = 0; y < hypoSettings.length; y++) {
+				if (!hypoSettings[y].active) {
+					continue;
+				}
+				if (hypoZone === 0 || hypoZone > hypoSettings[y].world)
+					hypoZone = hypoSettings[y].world;
 			}
-			if (hypoZone === 0 || hypoZone > hypoBaseSettings[y].world)
-				hypoZone = hypoBaseSettings[y].world;
 		}
 	}
-	// Storage, shouldn't be needed anymore that autostorage is lossless. Hypo fucked this statement :(
-	//Turn on autostorage if you're past your last farmzone and you don't need to save wood anymore. Else will have to force it to purchase enough storage up to the cost of whatever bonfires
+	//Storage, shouldn't be needed anymore that autostorage is lossless.
+	//Hypothermia messed this up. Has a check for if on Hypo and checks for the first Hypo farm zone.
 	if (!game.global.autoStorage && game.global.world >= hypoZone)
 		toggleAutoStorage(false);
 
-	//Disables AutoStorage when our first Hypo farm zone is greater than current world zone
-	if (game.global.world < hypoZone) {
-		if (game.global.autoStorage)
-			toggleAutoStorage(false);
-	}
+	//Disables AutoStorage when our first Hypothermia farm zone is greater than current world zone
+	if (game.global.world < hypoZone && game.global.autoStorage)
+		toggleAutoStorage(false);
 
 	//Buys storage buildings when about to cap resources
-	if (!game.global.improvedAutoStorage) {
+	if (!game.global.improvedAutoStorage)
 		buyStorage(hypoZone);
-	}
 
 	//Disable buying buildings inside of unique maps
 	if (game.global.mapsActive && (getCurrentMapObject().name === 'Trimple Of Doom' || getCurrentMapObject().name === 'Atlantrimp' || getCurrentMapObject().name === 'Melting Point' || getCurrentMapObject().name === 'Frozen Castle')) {
@@ -550,6 +558,7 @@ function buyBuildings() {
 		var buildingspending = buildingSettings[housing].percent / 100;
 		//Identify the amount of this type of housing we can afford and stay within our housing cap.
 		var maxCanAfford = calculateMaxAfford_AT(game.buildings[housing], true, false, false, (housingAmt - game.buildings[housing].purchased), buildingspending);
+		if (housing === 'Collector' && maxCanAfford + game.buildings[housing].purchased >= 6000) maxCanAfford = 6000 - game.buildings[housing].purchased;
 		//Finally purchases the correct amount of housing.
 		//calculateMaxAfford_AT will return 0 if we can't afford any housing as we have set a custom ratio so check if higher than that.
 		if (maxCanAfford > 0) {
@@ -560,11 +569,12 @@ function buyBuildings() {
 }
 
 function buyTributes() {
+	if (game.buildings.Tribute.locked) return;
 	const buildingSettings = getPageSetting('buildingSettingsArray');
 	var affordableMets = 0;
 	if (game.global.universe === 2) {
 		const jobSettings = getPageSetting('jobSettingsArray');
-		if (jobSettings.Meteorologist.enabled || mapSettings.shouldTribute || (mapSettings.mapName === 'Smithy Farm' && mapSettings.gemFarm)) {
+		if (jobSettings.Meteorologist.enabled || mapSettings.shouldTribute) {
 			affordableMets = getMaxAffordable(
 				game.jobs.Meteorologist.cost.food[0] * Math.pow(game.jobs.Meteorologist.cost.food[1], game.jobs.Meteorologist.owned),
 				game.resources.food.owned * (jobSettings.Meteorologist.percent / 100),
@@ -574,19 +584,19 @@ function buyTributes() {
 		}
 	}
 	//Won't buy Tributes if they're locked or if a meteorologist can be purchased as that should always be the more efficient purchase
-	if (!game.buildings.Tribute.locked && (game.jobs.Meteorologist.locked || !(affordableMets > 0 && !game.jobs.Meteorologist.locked && !mapSettings.shouldTribute))) {
-		if ((!buildingSettings.Tribute.enabled || mapSettings.shouldMeteorologist || mapSettings.mapName === 'Worshipper Farm') && !mapSettings.shouldTribute) return;
-		//Spend 100% of food on Tributes if Tribute Farming otherwise uses the value in RTributeSpendingPct.
-		var tributePct = mapSettings.mapName === 'Tribute Farm' && mapSettings.tribute > 0 ? 1 : buildingSettings.Tribute.percent > 0 ? buildingSettings.Tribute.percent / 100 : 1;
+	if (!game.jobs.Meteorologist.locked && !mapSettings.shouldTribute && affordableMets > 0) return;
+	//Won't buy Tributes if the users building setting is disabled OR we are met farming OR worshipper farming.
+	if ((!buildingSettings.Tribute.enabled || mapSettings.shouldMeteorologist || mapSettings.mapName === 'Worshipper Farm') && !mapSettings.shouldTribute) return;
+	//Spend 100% of food on Tributes if Tribute Farming otherwise uses the value in the users building settings.
+	var tributePct = mapSettings.mapName === 'Tribute Farm' && mapSettings.tribute > 0 ? 1 : buildingSettings.Tribute.percent > 0 ? buildingSettings.Tribute.percent / 100 : 1;
 
-		var tributeAmt = buildingSettings.Tribute.buyMax === 0 ? Infinity : mapSettings.mapName === 'Tribute Farm' && mapSettings.tribute > buildingSettings.Tribute.buyMax ? mapSettings.tribute : buildingSettings.Tribute.buyMax;
-		if ((mapSettings.mapName === 'Smithy Farm' && mapSettings.gemFarm) || currQuest() === 4) {
-			tributeAmt = Infinity;
-			tributePct = 1;
-		}
-		var tributeCanAfford = calculateMaxAfford_AT(game.buildings.Tribute, true, false, false, (tributeAmt - game.buildings.Tribute.purchased), tributePct);
-		if (tributeAmt > game.buildings.Tribute.purchased && tributeCanAfford > 0) {
-			safeBuyBuilding('Tribute', tributeCanAfford);
-		}
+	var tributeAmt = buildingSettings.Tribute.buyMax === 0 ? Infinity : mapSettings.mapName === 'Tribute Farm' && mapSettings.tribute > buildingSettings.Tribute.buyMax ? mapSettings.tribute : buildingSettings.Tribute.buyMax;
+	if ((mapSettings.mapName === 'Smithy Farm' && mapSettings.gemFarm) || currQuest() === 4) {
+		tributeAmt = Infinity;
+		tributePct = 1;
+	}
+	var tributeCanAfford = calculateMaxAfford_AT(game.buildings.Tribute, true, false, false, (tributeAmt - game.buildings.Tribute.purchased), tributePct);
+	if (tributeAmt > game.buildings.Tribute.purchased && tributeCanAfford > 0) {
+		safeBuyBuilding('Tribute', tributeCanAfford);
 	}
 }

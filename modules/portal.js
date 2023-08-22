@@ -10,6 +10,18 @@ MODULES.portal = {
 	zonePostpone: 0,
 }
 
+function getHeliumPerHour() {
+	var timeThisPortal = new Date().getTime() - game.global.portalTime;
+	if (timeThisPortal < 1) return 0;
+	timeThisPortal /= 3600000;
+	var resToUse;
+	if (game.global.universe === 2)
+		resToUse = game.resources.radon.owned;
+	else
+		resToUse = game.resources.helium.owned;
+	return resToUse / timeThisPortal;
+}
+
 //Figures out which type of autoPortal we should be running depending on what kind of challenge we are in.
 function autoPortalCheck(specificPortalZone) {
 	if (!game.global.portalActive) return;
@@ -45,16 +57,15 @@ function autoPortal(specificPortalZone, skipDaily) {
 		}
 	}
 
-
 	switch (getPageSetting('autoPortal', universe)) {
 		case "Helium Per Hour":
 		case "Radon Per Hour":
 			var OKtoPortal = false;
 			var minZone = getPageSetting('heHrDontPortalBefore', universe);
 			game.stats.bestHeliumHourThisRun.evaluate();
-			var bestHeHr = game.stats.bestHeliumHourThisRun.storedValue;
-			var bestHeHrZone = game.stats.bestHeliumHourThisRun.atZone;
-			var myHeliumHr = game.stats.heliumHour.value();
+			bestHeHr = game.stats.bestHeliumHourThisRun.storedValue;
+			bestHeHrZone = game.stats.bestHeliumHourThisRun.atZone;
+			myHeliumHr = getHeliumPerHour();
 			var heliumHrBuffer = Math.abs(getPageSetting('heliumHrBuffer', universe));
 			if (!atSettings.portal.aWholeNewWorld)
 				heliumHrBuffer *= MODULES["portal"].bufferExceedFactor;
@@ -68,13 +79,13 @@ function autoPortal(specificPortalZone, skipDaily) {
 				OKtoPortal = false;
 			if (OKtoPortal && MODULES.portal.zonePostpone === 0) {
 				if (getPageSetting('heliumHrPortal', universe) > 0 && game.global.totalVoidMaps > 0) {
-					if (!MODULES.portal.afterVoids) {
+					if (!MODULES.mapFunctions.afterVoids) {
 						if (getPageSetting('heliumHrPortal', universe) === 2 && getZoneEmpowerment(game.global.world) !== 'Poison') debug("Z" + game.global.world + " - Pushing to next Poison zone then portaling after void maps have been run.", "portal");
 						else debug("Z" + game.global.world + " - Portaling after void maps have been run.", "portal");
 					}
-					MODULES.portal.afterVoids = true;
+					MODULES.mapFunctions.afterVoids = true;
 				}
-				if (MODULES.portal.afterVoids) {
+				if (MODULES.mapFunctions.afterVoids) {
 					if (game.global.spireActive && getPageSetting('heliumHrExitSpire')) {
 						debug("Exiting Spire to run voids faster.", "portal");
 						endSpire();
@@ -196,7 +207,7 @@ function dailyAutoPortal(specificPortalZone) {
 		game.stats.bestHeliumHourThisRun.evaluate();
 		var bestHeHr = game.stats.bestHeliumHourThisRun.storedValue;
 		var bestHeHrZone = game.stats.bestHeliumHourThisRun.atZone;
-		var myHeliumHr = game.stats.heliumHour.value();
+		var myHeliumHr = getHeliumPerHour();
 		var heliumHrBuffer = Math.abs(getPageSetting('dailyHeliumHrBuffer'));
 		if (!atSettings.portal.aWholeNewWorld)
 			heliumHrBuffer *= MODULES["portal"].bufferExceedFactor;
@@ -211,13 +222,13 @@ function dailyAutoPortal(specificPortalZone) {
 			OKtoPortal = false;
 		if (OKtoPortal && MODULES.portal.zonePostpone === 0) {
 			if (getPageSetting('dailyHeliumHrPortal') > 0 && game.global.totalVoidMaps > 0) {
-				if (!MODULES.portal.afterVoids) {
+				if (!MODULES.mapFunctions.afterVoids) {
 					if (getPageSetting('dailyHeliumHrPortal') === 2 && getZoneEmpowerment(game.global.world) !== 'Poison') debug("Z" + game.global.world + " - Pushing to next Poison zone then portaling after void maps have been run.", "portal");
 					else debug("Z" + game.global.world + " - Portaling after void maps have been run.", "portal");
 				}
-				MODULES.portal.afterVoids = true;
+				MODULES.mapFunctions.afterVoids = true;
 			}
-			if (MODULES.portal.afterVoids) {
+			if (MODULES.mapFunctions.afterVoids) {
 				if (game.global.spireActive && getPageSetting('dailyHeliumHrExitSpire')) {
 					debug("Exiting Spire to run voids faster.", "portal");
 					endSpire();
@@ -303,7 +314,7 @@ function freeVoidPortal() {
 			universeSwapped();
 		}
 		downloadSave();
-		pushData();
+		if (typeof pushData === 'function') pushData();
 		if (!MODULES["portal"].dontPushData) pushSpreadsheetData();
 		activatePortal();
 		return;
@@ -323,7 +334,7 @@ function c2runnerportal(portalZone) {
 	if (game.global.world >= portalZone) {
 		finishChallengeSquared();
 		//Only portal automatically if using C2 Runner Pct input.
-		if (getPageSetting('c2RunnerStart')) {
+		if (getPageSetting('c2RunnerStart') && getPageSetting('c2RunnerEndMode') === 1) {
 			if (getPageSetting('heliumHourChallenge') !== 'None')
 				doPortal(getPageSetting('heliumHourChallenge'));
 			else
@@ -607,7 +618,7 @@ function doPortal(challenge, skipDaily) {
 	}
 	//Download save, push graphs data, push to spreadsheet for select users, activate portal, reset vars, and load mutators if necessary.
 	downloadSave();
-	pushData();
+	if (typeof pushData === 'function') pushData();
 	if (!MODULES["portal"].dontPushData) pushSpreadsheetData();
 	MODULES["portal"].currentChallenge = 'None';
 	MODULES["portal"].dontPushData = false;
@@ -708,12 +719,6 @@ function c2FinishZone() {
 }
 
 function finishChallengeSquared() {
-
-	if (!game.global.runningChallengeSquared) return;
-	if (game.global.world === 1 || !game.global.portalActive) return;
-	var finishChallenge = c2FinishZone();
-	if (game.global.world < finishChallenge) return;
-
 	downloadSave();
 	//Cancel out of challenge run
 	abandonChallenge();
@@ -753,9 +758,9 @@ function resetVarsZone(loadingSave) {
 	//General
 	MODULES.maps.mapTimer = 0;
 	MODULES.maps.fragmentCost = Infinity;
-	MODULES.portal.afterVoids = false;
+	MODULES.mapFunctions.afterVoids = false;
 
-	//Fragment Farming	
+	//Fragment Farming
 	initialFragmentMapID = undefined;
 
 	//Auto Level variables
@@ -767,11 +772,6 @@ function resetVarsZone(loadingSave) {
 
 	hdStats = new HDStats();
 	farmingDecision();
-
-	drawAllBuildings(true);
-	drawAllEquipment(true);
-	drawAllJobs(true);
-	drawAllUpgrades(true);
 }
 
 function presetSwapping(preset) {
@@ -922,10 +922,11 @@ load = function () {
 		loadAugustSettings();
 		atlantrimpRespecOverride();
 		resetVarsZone(true);
-		MODULES["graphs"].themeChanged();
+		if (typeof MODULES["graphs"].themeChanged === 'function')
+			MODULES["graphs"].themeChanged();
 		updateCustomButtons(true);
 	}
-	catch (e) { graphsDebug("Gather info failed: " + e) }
+	catch (e) { debug("Load save failed: " + e) }
 }
 
 // On portal/game reset
@@ -935,5 +936,5 @@ resetGame = function () {
 	try {
 		atlantrimpRespecOverride();
 	}
-	catch (e) { graphsDebug("Gather info failed: " + e) }
+	catch (e) { debug("Load save failed: " + e) }
 }

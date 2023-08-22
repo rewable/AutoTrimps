@@ -15,7 +15,7 @@ var atSettings = {
 	runInterval: 100,
 	portal: { currentworld: 0, lastrunworld: 0, aWholeNewWorld: false, currentHZE: 0, lastHZE: 0, aWholeNewHZE: false, },
 	loops: { atTimeLapseFastLoop: false, mainLoopInterval: null, guiLoopInterval: null, },
-	intervals: { counter: 0, oneSecond: false, twoSecond: false, sixSecond: false, tenSecond: false, oneHour: false, },
+	intervals: { counter: 0, oneSecond: false, twoSecond: false, sixSecond: false, tenSecond: false, tenMinute: false, },
 };
 
 //Searches html for where the AT script is being loaded from
@@ -121,12 +121,6 @@ function delayStart() {
 	// Append the script to the document
 	document.head.appendChild(script);
 
-	var script = document.createElement("script");
-	script.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
-	script.type = 'text/javascript';
-	// Append the script to the document
-	document.head.appendChild(script);
-
 	//Loads the settings from the save file, settingsGUI & the various modules installed.
 	initializeAutoTrimps();
 	//Add misc functions onto the button to activate portals so that if a user wants to manually portal they can without losing the AT features.
@@ -195,6 +189,13 @@ function delayStartAgain() {
 	universeSwapped();
 	//Loads my game settings
 	loadAugustSettings();
+
+	//Loading jQuery select2 to style dropdown boxes more than basic html/css can.
+	var script = document.createElement("script");
+	script.src = 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js';
+	script.type = 'text/javascript';
+	// Append the script to the document
+	document.head.appendChild(script);
 }
 
 //Displays Perky UI when changing universes.
@@ -258,6 +259,7 @@ function toggleCatchUpMode() {
 		atSettings.loops.atTimeLapseFastLoop = true;
 		gameLoop = function (makeUp, now) {
 			if (game.options.menu.pauseGame.enabled === 1) return;
+			var loopFrequency = getPageSetting('timeWarpFrequency');
 			var newZone = atSettings.portal.lastrunworld !== game.global.world;
 			if (newZone) mainCleanup();
 			originalGameLoop(makeUp, now);
@@ -265,37 +267,41 @@ function toggleCatchUpMode() {
 				game.global.mapStarted -= 100;
 
 			//Run mainLoop every n game loops and always on a new zone.
-			if (loops % getPageSetting('timeWarpFrequency') === 0 || newZone) {
+			if (loops % loopFrequency === 0 || newZone) {
 				mainLoop();
-				//If user want to see the games UI then run this code every n game loops.
-				if (getPageSetting('timeWarpDisplay') && usingRealTimeOffline) {
-					usingRealTimeOffline = false;
-					updateGoodBar();
-					updateBadBar(getCurrentEnemy_new());
-					document.getElementById("goodGuyHealthMax").innerHTML = prettify(game.global.soldierHealthMax);
-					document.getElementById("badGuyHealthMax").innerHTML = prettify(getCurrentEnemy_new().maxHealth);
+			}
 
-					var blockDisplay = "";
-					if (game.global.universe == 2) {
-						var esMax = game.global.soldierEnergyShieldMax;
-						var esMult = getEnergyShieldMult();
-						var layers = Fluffy.isRewardActive('shieldlayer');
-						if (layers > 0) {
-							esMax *= layers + 1;
-							esMult *= layers + 1;
-						}
-						blockDisplay = prettify(esMax) + " (" + Math.round(esMult * 100) + "%)";
+			//If user want to see the games UI then run this code every 600 game loops.
+			if (getPageSetting('timeWarpDisplay') && usingRealTimeOffline && loops % 600 === 0) {
+				usingRealTimeOffline = false;
+				var enemy = getCurrentEnemy_new();
+				updateGoodBar();
+				updateBadBar(enemy);
+				document.getElementById("goodGuyHealthMax").innerHTML = prettify(game.global.soldierHealthMax);
+				document.getElementById("badGuyHealthMax").innerHTML = prettify(enemy.maxHealth);
+
+				var blockDisplay = "";
+				//Prismatic Shield for U2
+				if (game.global.universe == 2) {
+					var esMax = game.global.soldierEnergyShieldMax;
+					var esMult = getEnergyShieldMult();
+					var layers = Fluffy.isRewardActive('shieldlayer');
+					if (layers > 0) {
+						esMax *= layers + 1;
+						esMult *= layers + 1;
 					}
-					else blockDisplay = prettify(game.global.soldierCurrentBlock);
-					document.getElementById("goodGuyBlock").innerHTML = blockDisplay;
-					document.getElementById("goodGuyAttack").innerHTML = calculateDamage(game.global.soldierCurrentAttack, true, true);
-					var badAttackElem = document.getElementById("badGuyAttack");
-					badAttackElem.innerHTML = calculateDamage(getCurrentEnemy_new().attack, true, false, false, getCurrentEnemy_new());
-
-					updateLabels(true);
-					displayMostEfficientEquipment();
-					usingRealTimeOffline = true;
+					blockDisplay = prettify(esMax) + " (" + Math.round(esMult * 100) + "%)";
 				}
+				//Block for U1
+				else blockDisplay = prettify(game.global.soldierCurrentBlock);
+				document.getElementById("goodGuyBlock").innerHTML = blockDisplay;
+				document.getElementById("goodGuyAttack").innerHTML = calculateDamage(game.global.soldierCurrentAttack, true, true);
+				var badAttackElem = document.getElementById("badGuyAttack");
+				badAttackElem.innerHTML = calculateDamage(getCurrentEnemy_new().attack, true, false, false, getCurrentEnemy_new());
+
+				updateLabels(true);
+				displayMostEfficientEquipment();
+				usingRealTimeOffline = true;
 			}
 
 			//Running a few functions everytime the game loop runs to ensure we aren't missing out on any mapping that needs to be done.
@@ -309,6 +315,11 @@ function toggleCatchUpMode() {
 		}
 
 		debug("TimeLapse Mode Enabled", "offline");
+		if (usingRealTimeOffline) {
+			var timeWarpTime = offlineProgress.formatTime(Math.floor(offlineProgress.totalOfflineTime / 1000));
+			debug(`Your Time Warp duration is ${timeWarpTime}.`);
+			if (getPageSetting('timeWarpDisplay')) tooltip(`Time Warp`, `customText`, `lock`, `Your Time Warp duration is ${timeWarpTime}. As you have the ${autoTrimpSettings.timeWarpDisplay.name()} setting enabled you have no visible timer but you can see the progress percent in the AutoMaps status bar at the bottom of the battle container.`, false, `center`)
+		}
 	}
 }
 
@@ -335,18 +346,18 @@ function mainLoop() {
 	//Adjust tooltip when mazWindow is open OR clear our adjustments if it's not.
 	//Need to identify a better solution to this. Not really sure what I can do though.
 	if (MODULES.popups.mazWindowOpen) {
-		var mazSettings = ["Map Farm", "Map Bonus", "Void Map", "HD Farm", "Raiding", "Bionic Raiding", "Balance Destack", "Toxicity Farm", "Quagmire Farm", "Insanity Farm", "Alchemy Farm", "Hypothermia Farm", "Bone Shrine", "Auto Golden", "Daily Auto Golden", "C3 Auto Golden", "Tribute Farm", "Smithy Farm", "Worshipper Farm", "Desolation Gear Scumming"];
-		var mazCheck = mazSettings.indexOf(document.getElementById('tooltipDiv').children.tipTitle.innerText);
+		var mazSettings = ["Map Farm", "Map Bonus", "Void Map", "HD Farm", "Raiding", "Bionic Raiding", "Balance Destack", "Toxicity Farm", "Quagmire Farm", "Insanity Farm", "Alchemy Farm", "Hypothermia Farm", "Bone Shrine", "Auto Golden", "Daily Auto Golden", "C3 Auto Golden", "Tribute Farm", "Smithy Farm", "Worshipper Farm", "Desolation Gear Scumming", "C2 Runner", "C3 Runner"];
+		var tipElem = document.getElementById('tooltipDiv');
+		var mazCheck = mazSettings.indexOf(tipElem.children.tipTitle.innerText);
 
 		if (mazCheck === -1) {
+			if (tipElem.style.overflowY !== '')
+				tipElem.style.overflowY = '';
+			if (tipElem.style.maxHeight !== '')
+				tipElem.style.maxHeight = '';
+			if (tipElem.style.width !== '')
+				tipElem.style.width = '';
 			MODULES.popups.mazWindowOpen = false;
-			if (document.getElementById('tooltipDiv').style.overflowY !== '')
-				document.getElementById('tooltipDiv').style.overflowY = '';
-			if (document.getElementById('tooltipDiv').style.maxHeight !== '')
-				document.getElementById('tooltipDiv').style.maxHeight = '';
-
-			if (document.getElementById('tooltipDiv').classList[0] !== undefined && document.getElementById('tooltipDiv').classList[0].includes('Window'))
-				document.getElementById('tooltipDiv').classList.remove(document.getElementById('tooltipDiv').classList[0]);
 		}
 	}
 
@@ -365,9 +376,9 @@ function mainLoop() {
 	atSettings.intervals.sixSecond = atSettings.intervals.counter % (6000 / atSettings.runInterval) === 0;
 	atSettings.intervals.tenSecond = atSettings.intervals.counter % (10000 / atSettings.runInterval) === 0;
 	//Need a one hour interval for version checking.
-	atSettings.intervals.oneHour = atSettings.intervals.counter % (360000) === 0;
+	atSettings.intervals.tenMinute = atSettings.intervals.counter % (60000) === 0;
 
-	if (atSettings.intervals.oneHour)
+	if (atSettings.intervals.tenMinute)
 		atVersionChecker();
 
 	//This needs to be run here so that any variables that are reset at the start of a zone are reset before hdStats and mapSettings variables are updated.
@@ -387,7 +398,7 @@ function mainLoop() {
 	}
 
 	//Heirloom Shield Swap Check
-	if (MODULES.heirlooms.shieldEquipped !== game.global.ShieldEquipped.id) HeirloomShieldSwapped();
+	if (MODULES.heirlooms.shieldEquipped !== game.global.ShieldEquipped.id) heirloomShieldSwapped();
 
 	//Sets the resources needed for the upgrades you have to buy
 	setResourceNeeded();

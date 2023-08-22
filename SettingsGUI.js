@@ -455,8 +455,8 @@ function initializeAllSettings() {
 			Farmer: { enabled: true, ratio: 1 },
 			Lumberjack: { enabled: true, ratio: 1 },
 			Miner: { enabled: true, ratio: 1 },
-			Explorer: { enabled: true, percent: 5 },
-			Trainer: { enabled: true, percent: 10 },
+			Explorer: { enabled: true, percent: 10 },
+			Trainer: { enabled: true, percent: 25 },
 			Magmamancer: { enabled: true, percent: 100 },
 			Meteorologist: { enabled: true, percent: 100 },
 			Worshipper: { enabled: true, percent: 5 },
@@ -753,7 +753,7 @@ function initializeAllSettings() {
 				description += "<p><b>Your Hits Survived Ratio can be seen in either the Auto Maps status tooltip or the AutoTrimp settings Help tab.</b></p>";
 				description += "<p><b>Recommended:</b> 1</p>";
 				return description;
-			}, 'value', 1.5, null, "Equipment", [1, 2],
+			}, 'value', 1.25, null, "Equipment", [1, 2],
 			function () { return (getPageSetting('equipOn', currSettingUniverse)) });
 		createSetting('equipCapAttack',
 			function () { return ('AE: Weapon Cap') },
@@ -805,15 +805,15 @@ function initializeAllSettings() {
 			function () {
 				var trimple = currSettingUniverse === 1 ? "<b>Trimple of Doom</b>" : "<b>Atlantrimp</b>";
 				var description = "<p>Will control how equipment levels & prestiges are purchased.</p>";
-				description += "<p><b>Equipment levels are capped at 9 when a prestige is available for that equip to ensure the script doesn't unnecessarily spend resources on them when prestiges would be more efficient.</p>";
+				description += "<p><b>Equipment levels are capped at 9 when a prestige is available for that equip to ensure the script doesn't unnecessarily spend resources on them when prestiges would be more efficient.</b></p>";
 
 				description += "<p><b>AE: Prestige Off</b><br>Will only purchase prestiges when you have 6 or more levels in your that piece of equipment.</p>";
 
 				description += "<p><b>AE: Maybe Prestige</b><br>Will only purchase prestiges you have either 6 or more levels in an equip <b>OR</b> when outside of your <b>AE: Zone</b> range <b>OR</b> when you can afford them .</p>";
 
-				description += "<p><b>AE: Prestige</b><br>Overrides the need for levels in your current equips before a prestige will be purchased. Will purchase gear levels again when you have run " + trimple + ".</p>";
+				description += "<p><b>AE: Prestige</b><br>Overrides the need for levels in your current equips before a prestige will be purchased. Will purchase gear levels again when you have run " + trimple + ".";
 
-				description += "<br><b>If " + trimple + " has been run it will buy any prestiges that cost less than 8% of your current resources then spend your remaining resources on equipment levels.</b></p>";
+				description += "<br>If <b>" + trimple + "</b> has been run it will buy any prestiges that cost less than 8% of your current resources then spend your remaining resources on equipment levels.</p>";
 
 				description += "<p><b>AE: Always Prestige</b><br>Always buys prestiges of weapons and armor regardless of efficiency. Will override AE: Zone setting for an equip if it has a prestige available.</p>";
 
@@ -1357,7 +1357,7 @@ function initializeAllSettings() {
 				description += "<p><b>Recommended:</b> 1.5 for earlygame, gradually increase the further you progress</p>";
 				if (currSettingUniverse === 2) description += "<p>Don't set this above 1 when using <b>Auto Equality: Advanced</b> as it can cause you to eternally farm.</p>";
 				return description;
-			}, 'value', 1.5, null, "Maps", [1, 2]);
+			}, 'value', 1.25, null, "Maps", [1, 2]);
 
 		createSetting('mapBonusHealth',
 			function () { return ('Map Bonus Health') },
@@ -1404,7 +1404,7 @@ function initializeAllSettings() {
 				description += "<p><b>Click to adjust settings.</b></p>";
 				description += "<p>If needed, the <b>Help</b> button at the bottom left of the popup window has information for all of the inputs.</p>";
 				return description;
-			}, 'mazArray', [{ active: false, jobratio: '1,2,6', mapCap: 500 }], 'MAZLookalike("HD Farm", "HDFarm", "MAZ")', 'Maps', [1, 2]);
+			}, 'mazArray', [{ active: false, jobratio: '1,1,2', mapCap: 500 }], 'MAZLookalike("HD Farm", "HDFarm", "MAZ")', 'Maps', [1, 2]);
 
 		createSetting('voidMapSettings',
 			function () { return ('Void Map Settings') },
@@ -1472,7 +1472,7 @@ function initializeAllSettings() {
 				description += "<p><b>Click to adjust settings.</b></p>";
 				description += "<p>If needed, the <b>Help</b> button at the bottom left of the popup window has information for all of the inputs.</p>";
 				return description;
-			}, 'mazArray', [{ active: false }], 'MAZLookalike("Map Bonus", "MapBonus", "MAZ")', 'Maps', [1, 2]);
+			}, 'mazArray', [{ active: false, jobratio: '1,1,2', special: '0', }], 'MAZLookalike("Map Bonus", "MapBonus", "MAZ")', 'Maps', [1, 2]);
 
 		createSetting('mapBonusZone',
 			function () { return ('Map Bonus: Zone') },
@@ -1800,7 +1800,7 @@ function initializeAllSettings() {
 		createSetting('c2RunnerSettings',
 			function () { return (cinf() + ' Runner Settings') },
 			function () {
-				var description = "<p>Here you can enable the challenges you would like " + cinf() + " runner to complete and the zone you'd like the respective challenge to finish at and it will start them on the next auto portal if necessary.</p>";
+				var description = "<p>Here you can enable the challenges you would like " + cinf() + " runner to complete and the zone you'd like the respective challenge to finish at. It will start them on the next auto portal if necessary.</p>";
 				description += "<p><b>Click to adjust settings.</b></p>";
 				return description;
 			},
@@ -1808,12 +1808,11 @@ function initializeAllSettings() {
 			function () {
 				return (getPageSetting('c2RunnerStart', currSettingUniverse) && getPageSetting('c2RunnerMode', currSettingUniverse) === 1)
 			});
-
 		createSetting('c2RunnerPortal',
-			function () { return (cinf() + ' Runner Portal') },
+			function () { return (cinf() + ' Runner End Zone') },
 			function () {
-				var description = "<p>Automatically abandon challenge and portal when this zone is reached.</p>";
-				description += "<p>Set to <b>0 or below</b> to disable this setting and disable portaling inside your " + cinf() + "s.</p>";
+				var description = "<p>Automatically abandon challenge when this zone is reached.</p>";
+				description += "<p>Set to <b>0 or below</b> to disable this setting and disable ending your " + cinf() + "s.</p>";
 				description += "<p><b>Recommended:</b> Desired challenge end goal</p>";
 				return description;
 			}, 'value', -1, null, 'C2', [1, 2],
@@ -1828,6 +1827,15 @@ function initializeAllSettings() {
 				return description;
 			}, 'value', 0, null, 'C2', [1, 2],
 			function () { return (getPageSetting('c2RunnerStart', currSettingUniverse) && getPageSetting('c2RunnerMode', currSettingUniverse) === 0) });
+
+		createSetting('c2RunnerEndMode',
+			function () { return ([cinf() + ' Runner End Challenge', cinf() + ' Runner Portal']) },
+			function () {
+				var description = "<p>If set to <b>Portal " + cinf() + "</b> this will automatically portal once you reach your " + cinf() + " end zone otherwise it will just end the challenge and continue on.</p>";
+				description += "<p><b>Recommended:</b> Portal " + cinf() + "</p>";
+				return description;
+			}, 'multitoggle', 1, null, 'C2', [1, 2],
+			function () { return (getPageSetting('c2RunnerStart', currSettingUniverse)) });
 		createSetting('c2Fused',
 			function () { return ('Fused ' + cinf() + 's') },
 			function () {
@@ -3567,8 +3575,7 @@ function initializeAllSettings() {
 				description += "<p><b>Transfer</b><br>Will purchase levels in your Poison transfer rate.</p>";
 				description += "<p><b>Convert to X</b> Will convert your tokens to the specified nature type.</p>";
 				return description;
-			},
-			'dropdown', 'Off', function () { return ['Off', 'Empowerment', 'Transfer', 'Convert to Wind', 'Convert to Ice']; }, 'Nature', [1],
+			}, 'dropdown', 'Off', function () { return ['Off', 'Empowerment', 'Transfer', 'Convert to Wind', 'Convert to Ice']; }, 'Nature', [1],
 			function () { return (autoTrimpSettings.AutoNatureTokens.enabled) });
 		createSetting('AutoWind',
 			function () { return ('Wind') },
@@ -3715,12 +3722,13 @@ function initializeAllSettings() {
 			function () { return ('Time Warp Display') },
 			function () {
 				var description = "<p>Will display the Trimps user interface during time warp.</p>";
-				description += "<p>Updates the display based off the value set in <b>Time Warp Frequency</b> so adjust that if you want it to update more often.</p>";
+				description += "<p>Updates the display every 600 ingame ticks so every minute of ingame time.</p>";
 				description += "<p>If enabled it will cause your time warp to take longer as it has to render additional frames.</p>";
-				description += "<p><b>Recommended:</b> Disabled</p>";
+				description += "<p>When first loading Time Warp will let you know how long your Time Warp is in a tooltip as you won't be able to see it ingame. Additionally adds your current Time Warp progress percentage to the Auto Maps status at the bottom of the battle container.</p>";
+				description += "<p><b>Recommended:</b> Enabled</p>";
 				return description;
 			}, 'boolean', false, null, 'Time Warp', [0],
-			function () { return (autoTrimpSettings.timeWarpSpeed.enabled && gameUserCheck()) });
+			function () { return (autoTrimpSettings.timeWarpSpeed.enabled) });
 	}
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -3780,7 +3788,7 @@ function initializeAllSettings() {
 			upgrades: false,
 			equipment: false,
 			maps: false,
-			map_Details: false,
+			map_Details: true,
 			map_Destacking: false,
 			map_Skip: false,
 			other: false,
@@ -3817,10 +3825,6 @@ function initializeAllSettings() {
 			function () { return ('Download for Debug') },
 			function () { return ('Will download both your save and the scripts settings so that they can be debugged easier.') },
 			'action', 'ImportExportTooltip("ExportAutoTrimps","update",true)', null, 'Import Export', [0]);
-		/* createSetting('CleanupAutoTrimps',
-			function () { return ('Cleanup Saved Settings') },
-			function () { return ('Deletes old values from previous versions of the script from your AutoTrimps settings file.') },
-			'infoclick', 'CleanupAutoTrimps', null, 'Import Export', [0]); */
 
 		createSetting('updateReload',
 			function () { return ('Update Reload') },
@@ -3973,7 +3977,7 @@ function initializeAllSettings() {
 				var description = "<p>Sets your current cell to the last world cell in maps.</p>";
 				description += "<p>Will also set the last enemy cells health to 0.</p>";
 				return description;
-			}, 'action', 'cheatMaxTenacity();', null, 'Test', [0]);
+			}, 'action', 'testMaxTenacity();', null, 'Test', [0]);
 
 		createSetting('testStatMult',
 			function () { return ('1e100x stats') },
@@ -4550,9 +4554,6 @@ function challengeUnlock(challenge, setting, c2) {
 	return msg;
 }
 
-MODULES.u1unlocks = [];
-MODULES.u2unlocks = [];
-
 //autoPortal
 function autoPortalChallenges() {
 	var hze;
@@ -4561,7 +4562,7 @@ function autoPortalChallenges() {
 		hze = game.stats.highestRadLevel.valueTotal();
 		challenge = ["Off", "Radon Per Hour"];
 		if (hze >= 40) challenge.push("Bublé");
-		if (hze >= 55) challenge.push("Melt");
+		if (hze >= 50) challenge.push("Melt");
 		if (hze >= 70) challenge.push("Quagmire");
 		if (hze >= 85) challenge.push("Quest");
 		if (hze >= 90) challenge.push("Archaeology");
@@ -4581,8 +4582,8 @@ function autoPortalChallenges() {
 		if (hze >= 40) challenge.push("Balance");
 		if (hze >= 55) challenge.push("Decay");
 		if (game.global.prisonClear >= 1) challenge.push("Electricity");
-		if (hze > 110) challenge.push("Life");
-		if (hze > 125) challenge.push("Crushed");
+		if (hze >= 110) challenge.push("Life");
+		if (hze >= 125) challenge.push("Crushed");
 		if (hze >= 145) challenge.push("Nom");
 		if (hze >= 165) challenge.push("Toxicity");
 		if (hze >= 180) challenge.push("Watch");
@@ -4603,7 +4604,7 @@ function heliumHourChallenges(isDaily) {
 	if (currSettingUniverse === 2) {
 		hze = game.stats.highestRadLevel.valueTotal();
 		if (hze >= 40) challenge.push("Bublé");
-		if (hze >= 55) challenge.push("Melt");
+		if (hze >= 50) challenge.push("Melt");
 		if (hze >= 70) challenge.push("Quagmire");
 		if (hze >= 85) challenge.push("Quest");
 		if (hze >= 90) challenge.push("Archaeology");
@@ -4618,8 +4619,8 @@ function heliumHourChallenges(isDaily) {
 		if (hze >= 40) challenge.push("Balance");
 		if (hze >= 55) challenge.push("Decay");
 		if (game.global.prisonClear >= 1) challenge.push("Electricity");
-		if (hze > 110) challenge.push("Life");
-		if (hze > 125) challenge.push("Crushed");
+		if (hze >= 110) challenge.push("Life");
+		if (hze >= 125) challenge.push("Crushed");
 		if (hze >= 145) challenge.push("Nom");
 		if (hze >= 165) challenge.push("Toxicity");
 		if (hze >= 180) challenge.push("Watch");
@@ -4694,9 +4695,9 @@ function challengeUnlockCheck() {
 	if (hze >= 60) challenge.push("Trimp");
 	if (hze >= 70) challenge.push("Trapper");
 	if (game.global.prisonClear >= 1) challenge.push("Electricity");
-	if (hze > 110) challenge.push("Life");
+	if (hze >= 110) challenge.push("Life");
 	if (hze >= 120) challenge.push("Coordinate");
-	if (hze > 125) challenge.push("Crushed");
+	if (hze >= 125) challenge.push("Crushed");
 	if (hze >= 130) challenge.push("Slow");
 	if (hze >= 145) challenge.push("Nom");
 	if (hze >= 150) challenge.push("Mapology");
@@ -4790,7 +4791,7 @@ function challengeUnlockCheckU2() {
 	if (hze >= 35) challenges.push("Unbalance");
 	if (hze >= 40) challenges.push("Bublé");
 	if (hze >= 45) challenges.push("Duel");
-	if (hze >= 55) challenges.push("Melt");
+	if (hze >= 50) challenges.push("Melt");
 	if (hze >= 60) challenges.push("Trappapalooza");
 	if (hze >= 70) challenges.push("Wither");
 	if (hze >= 70) challenges.push("Quagmire");
@@ -5160,13 +5161,13 @@ function autoToggle(what) {
 
 function autoPlusSettingsMenu() {
 	var $item = document.getElementById('autoSettings');
-	if ($item.style.display === 'block')
+	if ($item !== null && $item.style.display === 'block')
 		$item.style.display = 'none';
 	$item = document.getElementById('graphParent');
-	if ($item.style.display === 'block')
+	if ($item !== null && $item.style.display === 'block')
 		$item.style.display = 'none';
 	$item = document.getElementById('autoTrimpsTabBarMenu');
-	if ($item.style.display === 'block')
+	if ($item !== null && $item.style.display === 'block')
 		$item.style.display = 'none';
 	toggleSettingsMenu();
 }
